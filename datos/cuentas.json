@@ -1,0 +1,12 @@
+[
+  { "tipo": "ADMINISTRADOR", "id": 1, "nombreUsuario": "admin", "clave": "admin123", "nombre": "Administrador General" },
+  { "tipo": "ASISTENTE", "id": 2, "nombreUsuario": "juan", "clave": "1234", "nombre": "Juan Perez", "dni": "30111222", "origen": "CORDOBA", "eventos": [] },
+  { "tipo": "ASISTENTE", "id": 3, "nombreUsuario": "maria", "clave": "1234", "nombre": "Maria Garcia", "dni": "31222333", "origen": "CABA", "eventos": [101] },
+  { "tipo": "ASISTENTE", "id": 4, "nombreUsuario": "pedro", "clave": "1234", "nombre": "Pedro Lopez", "dni": "29555666", "origen": "LUJAN", "eventos": [] },
+  { "tipo": "PARROQUIA", "id": 5, "nombreUsuario": "sancayetano", "clave": "1234", "nombre": "Parroquia San Cayetano", "ciudad": "CABA", "direccion": "Av. Cobo 4000", "capacidad": 2 },
+  { "tipo": "PARROQUIA", "id": 6, "nombreUsuario": "sanfrancisco", "clave": "1234", "nombre": "Parroquia San Francisco", "ciudad": "CORDOBA", "direccion": "Calle 9 de Julio 500", "capacidad": 3 },
+  { "tipo": "HOTEL", "id": 7, "nombreUsuario": "granlujan", "clave": "1234", "nombre": "Hotel Gran Lujan", "ciudad": "LUJAN", "direccion": "Av. 25 de Mayo 100", "capacidad": 2, "categoria": 4 },
+  { "tipo": "ESPACIO_ORG", "id": 8, "nombreUsuario": "caritas", "clave": "1234", "nombre": "Centro Comunitario Caritas", "ciudad": "CABA", "direccion": "Rivadavia 800", "capacidad": 3, "organizador": "Caritas Argentina" },
+  { "tipo": "PARROQUIA", "id": 9, "nombreUsuario": "sanpablo", "clave": "1234", "nombre": "Parroquia San Pablo", "ciudad": "CLAYPOLE", "direccion": "Calle Belgrano 100", "capacidad": 2 },
+  { "tipo": "ASISTENTE", "id": 10, "nombreUsuario": "Santino", "clave": "aloha", "nombre": "Santino", "dni": "44940826", "origen": "CABA", "eventos": [] }
+]

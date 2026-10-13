@@ -1,0 +1,7 @@
+[
+  { "id": 1, "idAsistente": 2, "idAlojamiento": 5, "ingreso": "2026-11-08", "egreso": "2026-11-10", "estado": "ACTIVA" },
+  { "id": 2, "idAsistente": 3, "idAlojamiento": 5, "ingreso": "2026-11-08", "egreso": "2026-11-11", "estado": "ACTIVA" },
+  { "id": 3, "idAsistente": 4, "idAlojamiento": 7, "ingreso": "2026-11-09", "egreso": "2026-11-11", "estado": "ACTIVA" },
+  { "id": 4, "idAsistente": 4, "idAlojamiento": 6, "ingreso": "2026-11-08", "egreso": "2026-11-09", "estado": "CANCELADA" },
+  { "id": 5, "idAsistente": 10, "idAlojamiento": 6, "ingreso": "2026-11-08", "egreso": "2026-11-10", "estado": "CANCELADA" }
+]
