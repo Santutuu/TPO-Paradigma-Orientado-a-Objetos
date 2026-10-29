@@ -55,6 +55,11 @@ public abstract class Alojamiento extends Usuario {
     public abstract String descripcion();
 
     @Override
+    public String toString() {
+        return getNombre() + " (" + getCiudad() + ")";
+    }
+
+    @Override
     public String getRol() {
         return "ALOJAMIENTO";
     }
