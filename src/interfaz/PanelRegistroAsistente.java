@@ -2,6 +2,7 @@ package interfaz;
 
 import modelo.Asistente;
 import modelo.TipoDocumento;
+import modelo.UsuarioFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -196,8 +197,8 @@ public class PanelRegistroAsistente extends JPanel {
                 return;
             }
 
-            Asistente asistente = new Asistente(0, nombreUsuario, clave, nombre,
-                    tipoDocumento, dni, origen);
+            Asistente asistente = UsuarioFactory.crearAsistente(0, nombreUsuario, clave,
+                    nombre, tipoDocumento, dni, origen);
             // Si el gestor registra la cuenta, informa el resultado y vuelve al inicio.
             ventana.getGestorUsuarios().registrarAsistente(asistente);
             UtilidadesInterfaz.mostrarInfo(this, "Asistente registrado correctamente.");

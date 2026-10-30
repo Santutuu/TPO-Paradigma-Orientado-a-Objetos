@@ -151,13 +151,13 @@ public class PersistenciaJSON {
 
         switch (tipo) {
             case "ADMINISTRADOR":
-                return new Administrador(id, nombreUsuario, clave, nombre);
+                return UsuarioFactory.crearAdministrador(id, nombreUsuario, clave, nombre);
             case "ASISTENTE": {
                 TipoDocumento tipoDocumento = tipoDocumento(m);
                 String dni = (String) m.get("dni");
                 String origen = (String) m.get("origen");
-                Asistente asistente = new Asistente(id, nombreUsuario, clave, nombre,
-                        tipoDocumento, dni, origen);
+                Asistente asistente = UsuarioFactory.crearAsistente(id, nombreUsuario, clave,
+                        nombre, tipoDocumento, dni, origen);
                 Object eventos = m.get("eventos");
                 if (eventos instanceof List) {
                     for (Object idEvento : (List<?>) eventos) {
@@ -167,12 +167,12 @@ public class PersistenciaJSON {
                 return asistente;
             }
             case "PARROQUIA":
-                return new Parroquia(id, nombreUsuario, clave, nombre,
+                return UsuarioFactory.crearParroquia(id, nombreUsuario, clave, nombre,
                         ciudad(m), direccion(m), capacidad(m), texto(m.get("responsable")));
             case "HOTEL":
                 return construirHotel(id, nombreUsuario, clave, nombre, m);
             case "ESPACIO_ORG":
-                return new EspacioOrg(id, nombreUsuario, clave, nombre,
+                return UsuarioFactory.crearEspacioOrg(id, nombreUsuario, clave, nombre,
                         ciudad(m), direccion(m), capacidad(m),
                         (String) m.get("organizador"));
             default:
@@ -232,9 +232,9 @@ public class PersistenciaJSON {
             cuadruples = 0;
         }
 
-        return new Hotel(id, nombreUsuario, clave, nombre, ciudad(m), direccion(m),
-                categoria, precioSimple, precioDoble, precioTriple, precioCuadruple,
-                simples, dobles, triples, cuadruples);
+        return UsuarioFactory.crearHotel(id, nombreUsuario, clave, nombre, ciudad(m),
+                direccion(m), categoria, precioSimple, precioDoble, precioTriple,
+                precioCuadruple, simples, dobles, triples, cuadruples);
     }
 
     private int cantidadHabitaciones(Map<String, Object> detalle, String personas) throws IOException {

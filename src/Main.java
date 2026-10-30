@@ -7,6 +7,7 @@ import servicios.GestorAlojamientos;
 import servicios.GestorEventos;
 import servicios.GestorReservas;
 import servicios.GestorUsuarios;
+import servicios.NotificadorReservas;
 
 import javax.swing.*;
 import java.util.List;
@@ -31,6 +32,8 @@ public class Main {
             GestorUsuarios gestorUsuarios = new GestorUsuarios(usuarios, persistencia);
             GestorEventos gestorEventos = new GestorEventos(eventos, gestorUsuarios, persistencia);
             GestorReservas gestorReservas = new GestorReservas(reservas, gestorUsuarios, persistencia);
+            // Observador de ejemplo: deja un mensaje cuando se crea o cancela una reserva.
+            gestorReservas.agregarObservador(new NotificadorReservas());
             GestorAlojamientos gestorAlojamientos = new GestorAlojamientos(gestorUsuarios, gestorReservas, persistencia);
 
             SwingUtilities.invokeLater(() -> new VentanaPrincipal(

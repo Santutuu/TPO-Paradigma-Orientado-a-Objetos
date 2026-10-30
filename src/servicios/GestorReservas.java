@@ -25,13 +25,28 @@ public class GestorReservas {
     // Para buscar asistentes y alojamientos por id.
     private final GestorUsuarios gestorUsuarios;
     private final PersistenciaJSON persistencia;
+    // Observadores que se enteran cuando se crea o cancela una reserva.
+    private final List<ReservaObserver> observadores;
 
     public GestorReservas(List<Reserva> reservas, GestorUsuarios gestorUsuarios,
                           PersistenciaJSON persistencia) {
         this.reservas = reservas;
         this.gestorUsuarios = gestorUsuarios;
         this.persistencia = persistencia;
+        this.observadores = new ArrayList<>();
         completarReservasDeHotelSinTipo();
+    }
+
+    /** Agrega un observador que sera notificado ante cambios de reservas. */
+    public void agregarObservador(ReservaObserver observador) {
+        if (observador != null && !observadores.contains(observador)) {
+            observadores.add(observador);
+        }
+    }
+
+    /** Quita un observador previamente registrado. */
+    public void quitarObservador(ReservaObserver observador) {
+        observadores.remove(observador);
     }
 
     /**
@@ -167,6 +182,7 @@ public class GestorReservas {
                 tipo, personas, precioPorNoche, ingreso, egreso, EstadoReserva.ACTIVA);
         reservas.add(reserva);
         guardarReservas();
+        notificarReservaCreada(reserva);
         return reserva;
     }
 
@@ -193,6 +209,7 @@ public class GestorReservas {
 
         reserva.cancelar();
         guardarReservas();
+        notificarReservaCancelada(reserva);
     }
 
     public List<Reserva> reservasDeAlojamiento(int idAlojamiento) {
@@ -352,6 +369,28 @@ public class GestorReservas {
             }
         }
         return maximo + 1;
+    }
+
+    private void notificarReservaCreada(Reserva reserva) {
+        for (ReservaObserver observador : new ArrayList<>(observadores)) {
+            try {
+                observador.reservaCreada(reserva);
+            } catch (RuntimeException ex) {
+                System.err.println("Un observador fallo al notificar una reserva creada: "
+                        + ex.getMessage());
+            }
+        }
+    }
+
+    private void notificarReservaCancelada(Reserva reserva) {
+        for (ReservaObserver observador : new ArrayList<>(observadores)) {
+            try {
+                observador.reservaCancelada(reserva);
+            } catch (RuntimeException ex) {
+                System.err.println("Un observador fallo al notificar una reserva cancelada: "
+                        + ex.getMessage());
+            }
+        }
     }
 
     private void guardarReservas() {
