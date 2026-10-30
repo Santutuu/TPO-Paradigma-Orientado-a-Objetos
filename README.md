@@ -31,7 +31,8 @@ tp7/
 ├── datos/
 │   ├── cuentas.json
 │   ├── eventos.json
-│   └── reservas.json
+│   ├── reservas.json
+│   └── notificaciones.json
 ├── notas/
 │   ├── README.md
 └── uml+/
@@ -131,6 +132,19 @@ Arreglo de reservas:
 
 Las fechas se guardan como `AAAA-MM-DD`, los horarios como `HH:mm` (`horario` es el inicio y `horarioFin` el fin estimado) y las enumeraciones con su nombre en mayusculas.
 
+### `notificaciones.json`
+
+Arreglo de notificaciones persistidas:
+
+```json
+{ "id": 1, "idDestinatario": 7, "fechaHora": "2026-10-30T18:20:00", "tipo": "RESERVA", "mensaje": "Nueva reserva #6 de Pedro Lopez en Hotel Gran Lujan (habitacion para 2 personas) del 2026-11-20 al 2026-11-22.", "leida": false }
+```
+
+- `idDestinatario` es el id de la cuenta que debe verla.
+- `tipo` vale `EVENTO` o `RESERVA`.
+- `leida` indica si el usuario ya abrio la ventana de notificaciones.
+- Si el archivo no existe, la aplicacion arranca con una lista vacia.
+
 ---
 
 ## Listado de clases y responsabilidades
@@ -151,30 +165,34 @@ Las fechas se guardan como `AAAA-MM-DD`, los horarios como `HH:mm` (`horario` es
 | `Evento` | Evento de la agenda (`id`, `fecha`, `horario` de inicio, `horarioFin` estimado, `actividad`, `ciudad`). `seSuperpone(otro)` compara fecha y rangos horarios (extension). |
 | `Reserva` | Reserva (`id`, `idAsistente`, `idAlojamiento`, `tipoHabitacion`, `cantidadPersonas`, `precioPorNoche`, `ingreso`, `egreso`, `estado`). En hoteles ocupa una habitacion completa; en otros alojamientos representa una persona. Metodos `seSuperpone(otra : Reserva)`, `cancelar()` y `estaActiva()`. |
 | `UsuarioFactory` | Fabrica simple que centraliza la creacion de cada subtipo de `Usuario` (`Administrador`, `Asistente`, `Parroquia`, `Hotel`, `EspacioOrg`). La seleccion del tipo se hace en persistencia/formularios y la construccion pasa siempre por la fabrica. |
+| `Notificacion` | Notificacion persistida para una cuenta (`idDestinatario`, `fechaHora`, `tipo`, `mensaje`, `leida`). |
 
 ### `servicios`
 
 | Clase | Responsabilidad |
 |---|---|
 | `GestorUsuarios` | Registro, autenticacion, unicidad de nombre de usuario, busqueda por id y asignacion de ids. |
-| `GestorEventos` | Alta, modificacion y consulta de eventos; inscripcion/desinscripcion por id y control de superposiciones. |
-| `GestorReservas` | Creacion, consulta y cancelacion de reservas y calculo de disponibilidad. |
+| `GestorEventos` | Alta, modificacion y consulta de eventos; inscripcion/desinscripcion por id, control de superposiciones y notificacion a observadores. |
+| `GestorReservas` | Creacion, consulta y cancelacion de reservas, calculo de disponibilidad y notificacion a observadores. |
 | `GestorAlojamientos` | Consulta y modificacion de datos y capacidad, y consulta de huespedes por periodo. |
 | `ReservaObserver` | Interfaz de observador con eventos `reservaCreada` y `reservaCancelada` (implementacion vacia por defecto). |
+| `EventoObserver` | Interfaz de observador con eventos `eventoCreado` y `eventoModificado`. |
 | `NotificadorReservas` | Observador concreto que informa por consola cuando se crea o cancela una reserva. |
+| `GestorNotificaciones` | Implementa los dos observers, decide los destinatarios, persiste las notificaciones y avisa a la interfaz. |
+| `NotificacionListener` | Interfaz que usa la ventana principal para enterarse de una notificacion nueva. |
 
 ### `persistencia`
 
 | Clase | Responsabilidad |
 |---|---|
 | `ParserJSON` | Parsea texto JSON a objetos (`Map`, `List`, `String`, `Number`, `Boolean`, `null`) y rechaza entradas invalidas. |
-| `PersistenciaJSON` | Carga y guarda los tres archivos JSON. Escribe con `StringBuilder` y lee con `ParserJSON`. |
+| `PersistenciaJSON` | Carga y guarda los cuatro archivos JSON. Escribe con `StringBuilder` y lee con `ParserJSON`. |
 
 ### `interfaz`
 
 | Clase | Responsabilidad |
 |---|---|
-| `VentanaPrincipal` | `JFrame` principal, centrado, con la navegacion entre paneles y la sesion actual. |
+| `VentanaPrincipal` | `JFrame` principal, centrado, con la navegacion entre paneles, la sesion actual y el boton de notificaciones con contador de no leidas. |
 | `PanelInicioSesion` | Menu sin sesion: login y accesos publicos (registro, agenda, alojamientos). |
 | `PanelRegistroAsistente` | Formulario de alta de asistente. |
 | `PanelRegistroAlojamiento` | Formulario de alta de alojamiento (con subtipo y campo extra segun el tipo). |
@@ -184,6 +202,7 @@ Las fechas se guardan como `AAAA-MM-DD`, los horarios como `HH:mm` (`horario` es
 | `PanelAgenda` | Listado de eventos por fecha, "mis inscripciones" y gestion de inscripciones. |
 | `PanelBusquedaAlojamientos` | Listado de alojamientos por ciudad. |
 | `PanelReservas` | Reservar, consultar y cancelar reserva. |
+| `VentanaNotificaciones` | Ventana no modal con las notificaciones del usuario; al cerrarse las marca como leidas. |
 | `UtilidadesInterfaz` | Helpers compartidos (dialogos, fechas, tablas, botones). |
 
 ---
@@ -209,7 +228,7 @@ Asociaciones (por identificador, como en el UML):
 - `Alojamiento` **1** ── **0..\*** `Reserva` ("recibe"): `Reserva.idAlojamiento`. `Alojamiento` no conoce sus reservas; la navegabilidad va de `Reserva` al alojamiento.
 - `Evento` y `Alojamiento` usan `Ciudad`; `Reserva` usa `EstadoReserva` como tipo de atributo.
 - `GestorEventos` mantiene la coleccion de eventos (no esta modelado en el UML, pero es necesario para la aplicacion).
-- `UsuarioFactory`, `ReservaObserver` y `NotificadorReservas` son infraestructura de la aplicacion (Factory y Observer) y tampoco estan modelados en el UML; no cambian las relaciones del dominio.
+- `UsuarioFactory`, `ReservaObserver`, `EventoObserver`, `NotificadorReservas`, `GestorNotificaciones`, `Notificacion` y `VentanaNotificaciones` son infraestructura de la aplicacion (Factory, Observer y notificaciones) y tampoco estan modelados en el UML; no cambian las relaciones del dominio.
 
 ---
 
@@ -243,7 +262,9 @@ Asociaciones (por identificador, como en el UML):
 - **Campo `tipo`** en `cuentas.json` para reconstruir el subtipo correcto al leer (resuelve el polimorfismo).
 - **Logica de reservas en el servicio**: `GestorReservas` aplica las reglas de capacidad, solapamiento y reserva unica, porque `Alojamiento` no conoce sus reservas en este modelo.
 - **Factory de usuarios**: `UsuarioFactory` centraliza la construccion de cuentas para que persistencia y formularios no repitan constructores concretos. La seleccion por `tipo` sigue estando en `PersistenciaJSON` y en los paneles de registro.
-- **Observer de reservas**: `GestorReservas` notifica `reservaCreada` y `reservaCancelada` a los observadores registrados. `NotificadorReservas` es el observador concreto de ejemplo y escribe en consola; la interfaz no queda acoplada a esa notificacion.
+- **Observer de reservas y eventos**: `GestorReservas` notifica `reservaCreada`/`reservaCancelada` y `GestorEventos` notifica `eventoCreado`/`eventoModificado`. `NotificadorReservas` sigue escribiendo en consola como traza.
+- **Notificaciones persistentes**: `GestorNotificaciones` implementa los dos observers, decide los destinatarios y guarda cada aviso en `notificaciones.json`. El alta de un evento se avisa a todos los usuarios; la modificacion solo a los asistentes inscriptos; las reservas avisan al asistente y al alojamiento.
+- **Boton y ventana de notificaciones**: `VentanaPrincipal` muestra `Notificaciones (n)` en rojo cuando hay no leidas. Al abrir `VentanaNotificaciones` se listan los avisos del usuario y al cerrarla se marcan como leidos y se persiste el cambio.
 - **Horario de fin estimado**: el UML solo modela `horario`; se agrego `horarioFin` para poder detectar superposiciones reales entre eventos y validar las inscripciones. La interfaz lo pide en el alta y la modificacion, y lo muestra en la agenda.
 - **Cancelacion con 24 hs**: la regla se aplica en `GestorReservas.cancelarReserva` comparando la fecha de ingreso con `LocalDateTime.now()`. No hay reloj configurable: la validacion depende del reloj del sistema.
 - **`GestorEventos` fuera del UML**: el diagrama modela solo el dominio; el gestor sigue existiendo para alta, modificacion y agenda.
@@ -265,7 +286,8 @@ Asociaciones (por identificador, como en el UML):
 - La interfaz grafica no fue probada de forma manual exhaustiva (clic por clic); si se verifico que compila y que todos los paneles se construyen y navegan sin errores.
 - La regla de cancelacion con 24 hs usa el reloj del sistema; en los datos de ejemplo (noviembre de 2026) las reservas son cancelables mientras falte mas de un dia para el ingreso.
 - El precio se muestra y se guarda como snapshot, pero **no se modela un pago** ni se cobra desde la aplicacion.
-- La notificacion de reservas es por consola (`NotificadorReservas`); no se persiste un log ni se envia un correo.
+- Las notificaciones son internas de la aplicacion: se guardan en `notificaciones.json` y se muestran en una ventana Swing; no se envian por correo ni push. `NotificadorReservas` sigue escribiendo en consola como traza.
+- `notificaciones.json` no tiene purga automatica; las notificaciones se acumulan hasta que se borra el archivo manualmente.
 - No se asigna un **numero de habitacion** concreto: se controla la cantidad de habitaciones libres por tipo. Tampoco se venden camas sueltas dentro de una habitacion reservada.
 - La reduccion de habitaciones se valida contra la ocupacion maxima simultanea de cada tipo, no contra una fecha puntual.
 
@@ -333,7 +355,15 @@ El arnes historico del 27/10 (54/54) no forma parte del repositorio, por lo que 
 
 Ademas, una prueba de humo construyo y navego todos los paneles de los tres roles (publico, asistente, administrador y alojamiento) sobre una copia de los datos.
 
-El 30/10 se detecto que el fuente habia quedado en una version anterior y se reintegro la logica del 28/10 conservando el diseno actual de los paneles. Se recompilo desde cero y se corrio una verificacion nueva sobre una copia de los datos: **48/48 OK** (modelo, servicios, Factory, Observer y round-trip de persistencia) y **smoke test OK** de todos los paneles. Tambien se migraron los datos al esquema nuevo conservando la cuenta local `Santino` y la reserva 5, y se reincorporo `hotelcentro` como id 11.
+El 30/10 se detecto que el fuente habia quedado en una version anterior y se reintegro la logica del 28/10 conservando el diseno actual de los paneles. Se recompilo desde cero y se corrio una verificacion nueva sobre una copia de los datos: **48/48 OK** (modelo, servicios, Factory, Observer y round-trip de persistencia), **18/18 OK** de notificaciones y **smoke test OK** de todos los paneles. Tambien se migraron los datos al esquema nuevo conservando la cuenta local `Santino` y la reserva 5, y se reincorporo `hotelcentro` como id 11.
+
+**Notificaciones**
+- Alta de evento avisada a todos los usuarios.
+- Modificacion de evento avisada solo a los asistentes inscriptos.
+- Reserva creada y cancelada avisada al asistente y al alojamiento.
+- Persistencia en `notificaciones.json`.
+- Contador de no leidas y marcado como leidas.
+- Listener de interfaz notificado por cada aviso nuevo.
 
 ### Que quedo sin verificar
 
