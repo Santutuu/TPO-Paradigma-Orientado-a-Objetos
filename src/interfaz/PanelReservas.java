@@ -3,12 +3,15 @@ package interfaz;
 import modelo.Alojamiento;
 import modelo.Asistente;
 import modelo.Ciudad;
+import modelo.Hotel;
 import modelo.Reserva;
 
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Gestion de reservas del asistente: muestra la reserva actual, permite
@@ -20,6 +23,10 @@ public class PanelReservas extends JPanel {
     private final VentanaPrincipal ventana;
     private final JComboBox<Ciudad> comboCiudad;
     private final JComboBox<Alojamiento> comboAlojamiento;
+    // Estos dos campos solo se ven cuando el alojamiento elegido es un hotel.
+    private final JComboBox<Integer> comboTipoHabitacion;
+    private final JTextField campoPersonas;
+    private final JPanel panelHabitacion;
     private final JTextField campoIngreso;
     private final JTextField campoEgreso;
     private final JLabel etiquetaDisponibilidad;
@@ -61,17 +68,40 @@ public class PanelReservas extends JPanel {
         // Los controles de búsqueda y fechas se agrupan en el formulario de reserva.
         comboCiudad = new JComboBox<>(Ciudad.values());
         comboAlojamiento = new JComboBox<>();
+        comboTipoHabitacion = new JComboBox<>();
+        campoPersonas = new JTextField("1", 12);
+        panelHabitacion = new JPanel();
+        panelHabitacion.setLayout(new BoxLayout(panelHabitacion, BoxLayout.Y_AXIS));
+        panelHabitacion.setOpaque(false);
+        panelHabitacion.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panelHabitacion.add(crearCampo("Tipo de habitacion", comboTipoHabitacion));
+        panelHabitacion.add(Box.createVerticalStrut(10));
+        panelHabitacion.add(crearCampo("Cantidad de personas", campoPersonas));
+        panelHabitacion.setVisible(false);
         campoIngreso = new JTextField("2026-11-08", 12);
         campoEgreso = new JTextField("2026-11-10", 12);
         etiquetaDisponibilidad = new JLabel(" ");
         comboCiudad.setFont(comboCiudad.getFont().deriveFont(Font.PLAIN, 14f));
         comboAlojamiento.setFont(comboAlojamiento.getFont().deriveFont(Font.PLAIN, 14f));
+        comboTipoHabitacion.setFont(comboTipoHabitacion.getFont().deriveFont(Font.PLAIN, 14f));
+        comboTipoHabitacion.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> lista, Object valor, int indice,
+                                                           boolean seleccionado, boolean enfocado) {
+                super.getListCellRendererComponent(lista, valor, indice, seleccionado, enfocado);
+                if (valor instanceof Integer) {
+                    setText(descripcionTipoHabitacion((Integer) valor));
+                }
+                return this;
+            }
+        });
 
         comboCiudad.addItemListener(e -> {
             if (e.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
                 actualizarAlojamientos();
             }
         });
+        comboAlojamiento.addActionListener(e -> actualizarHabitacion());
         actualizarAlojamientos();
 
         JPanel formulario = new JPanel();
@@ -80,6 +110,8 @@ public class PanelReservas extends JPanel {
         formulario.add(crearCampo("Ciudad", comboCiudad));
         formulario.add(Box.createVerticalStrut(10));
         formulario.add(crearCampo("Alojamiento", comboAlojamiento));
+        formulario.add(Box.createVerticalStrut(10));
+        formulario.add(panelHabitacion);
         formulario.add(Box.createVerticalStrut(10));
         formulario.add(crearCampo("Ingreso (AAAA-MM-DD)", campoIngreso));
         formulario.add(Box.createVerticalStrut(10));
@@ -221,7 +253,15 @@ public class PanelReservas extends JPanel {
             etiquetaReservaActual.setText("No tenes ninguna reserva activa.");
         } else {
             Alojamiento alojamiento = ventana.getGestorUsuarios().buscarAlojamiento(reserva.getIdAlojamiento());
-            etiquetaReservaActual.setText("Reserva activa: " + alojamiento.getNombre()
+            String detalle = "";
+            if (reserva.getTipoHabitacion() > 0) {
+                detalle = " (habitacion para " + reserva.getTipoHabitacion()
+                        + " personas, " + reserva.getCantidadPersonas()
+                        + (reserva.getCantidadPersonas() == 1 ? " huesped" : " huespedes")
+                        + ", $ " + String.format(Locale.ROOT, "%.2f", reserva.getPrecioPorNoche())
+                        + " por noche)";
+            }
+            etiquetaReservaActual.setText("Reserva activa: " + alojamiento.getNombre() + detalle
                     + " del " + reserva.getIngreso() + " al " + reserva.getEgreso() + ".");
         }
     }
@@ -234,6 +274,48 @@ public class PanelReservas extends JPanel {
         for (Alojamiento a : alojamientos) {
             comboAlojamiento.addItem(a);
         }
+        actualizarHabitacion();
+    }
+
+    // Si el alojamiento es hotel, muestro los tipos que tienen habitaciones.
+    // Si es parroquia o espacio, escondo esos campos.
+    private void actualizarHabitacion() {
+        // El tipo de habitacion y la cantidad de personas solo aplican a hoteles.
+        Alojamiento alojamiento = (Alojamiento) comboAlojamiento.getSelectedItem();
+        boolean esHotel = alojamiento instanceof Hotel;
+        panelHabitacion.setVisible(esHotel);
+        if (esHotel) {
+            Hotel hotel = (Hotel) alojamiento;
+            Object anterior = comboTipoHabitacion.getSelectedItem();
+            comboTipoHabitacion.removeAllItems();
+            for (int tipo = 1; tipo <= Hotel.MAX_PERSONAS_POR_HABITACION; tipo++) {
+                if (hotel.getCantidadHabitaciones(tipo) > 0) {
+                    comboTipoHabitacion.addItem(tipo);
+                }
+            }
+            if (anterior != null) {
+                for (int i = 0; i < comboTipoHabitacion.getItemCount(); i++) {
+                    if (comboTipoHabitacion.getItemAt(i).equals(anterior)) {
+                        comboTipoHabitacion.setSelectedIndex(i);
+                        break;
+                    }
+                }
+            }
+            if ((comboTipoHabitacion.getSelectedItem() == null
+                    || comboTipoHabitacion.getSelectedIndex() < 0)
+                    && comboTipoHabitacion.getItemCount() > 0) {
+                comboTipoHabitacion.setSelectedIndex(0);
+            }
+        }
+        if (panelHabitacion.getParent() != null) {
+            panelHabitacion.getParent().revalidate();
+        }
+        revalidate();
+        repaint();
+    }
+
+    private String descripcionTipoHabitacion(int tipo) {
+        return tipo == 1 ? "1 persona" : tipo + " personas";
     }
 
     private void verDisponibilidad() {
@@ -249,13 +331,47 @@ public class PanelReservas extends JPanel {
             if (!egreso.isAfter(ingreso)) {
                 throw new IllegalArgumentException("El egreso debe ser posterior al ingreso.");
             }
-            int disponibles = ventana.getGestorReservas().disponibilidad(
-                    alojamiento.getId(), ingreso, egreso);
-            etiquetaDisponibilidad.setText("Disponibilidad para todo el periodo: "
-                    + disponibles + " de " + alojamiento.getCapacidad() + " plazas.");
+            if (alojamiento instanceof Hotel) {
+                // Para hoteles muestro habitaciones libres del tipo elegido,
+                // el precio por noche y el total de las noches.
+                Hotel hotel = (Hotel) alojamiento;
+                Integer tipo = (Integer) comboTipoHabitacion.getSelectedItem();
+                if (tipo == null) {
+                    throw new IllegalArgumentException("El hotel no tiene tipos de habitacion disponibles.");
+                }
+                int disponibles = Math.max(0, ventana.getGestorReservas()
+                        .habitacionesDisponibles(alojamiento.getId(), tipo, ingreso, egreso));
+                double precio = hotel.getPrecioPorNoche(tipo);
+                long noches = ChronoUnit.DAYS.between(ingreso, egreso);
+                etiquetaDisponibilidad.setText("Habitaciones para "
+                        + descripcionTipoHabitacion(tipo) + " disponibles: " + disponibles
+                        + ". Precio por noche: $ " + String.format(Locale.ROOT, "%.2f", precio)
+                        + ". Total estimado: $ "
+                        + String.format(Locale.ROOT, "%.2f", precio * noches) + ".");
+            } else {
+                int disponibles = ventana.getGestorReservas().disponibilidad(
+                        alojamiento.getId(), ingreso, egreso);
+                etiquetaDisponibilidad.setText("Disponibilidad para todo el periodo: "
+                        + disponibles + " de " + alojamiento.getCapacidad() + " plazas.");
+            }
         } catch (Exception ex) {
             UtilidadesInterfaz.mostrarError(this, ex.getMessage());
         }
+    }
+
+    // Leo cuantas personas van y controlo que sea un entero positivo.
+    private int leerCantidadPersonas() {
+        String texto = campoPersonas.getText().trim();
+        int personas;
+        try {
+            personas = Integer.parseInt(texto);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("La cantidad de personas debe ser un numero entero.");
+        }
+        if (personas <= 0) {
+            throw new IllegalArgumentException("La cantidad de personas debe ser positiva.");
+        }
+        return personas;
     }
 
     private void confirmarReserva() {
@@ -269,8 +385,23 @@ public class PanelReservas extends JPanel {
             LocalDate ingreso = UtilidadesInterfaz.leerFecha(campoIngreso.getText());
             LocalDate egreso = UtilidadesInterfaz.leerFecha(campoEgreso.getText());
 
-            ventana.getGestorReservas().crearReserva(asistente().getId(), alojamiento.getId(), ingreso, egreso);
-            UtilidadesInterfaz.mostrarInfo(this, "Reserva confirmada en " + alojamiento.getNombre() + ".");
+            if (alojamiento instanceof Hotel) {
+                // Para un hotel mando tipo de habitacion y cantidad de personas.
+                Integer tipo = (Integer) comboTipoHabitacion.getSelectedItem();
+                if (tipo == null) {
+                    throw new IllegalArgumentException("Elegi un tipo de habitacion.");
+                }
+                int personas = leerCantidadPersonas();
+                ventana.getGestorReservas().crearReserva(asistente().getId(), alojamiento.getId(),
+                        tipo, personas, ingreso, egreso);
+                UtilidadesInterfaz.mostrarInfo(this, "Reserva confirmada en " + alojamiento.getNombre()
+                        + " (habitacion para " + descripcionTipoHabitacion(tipo)
+                        + ", " + personas + (personas == 1 ? " persona" : " personas") + ").");
+            } else {
+                ventana.getGestorReservas().crearReserva(asistente().getId(), alojamiento.getId(),
+                        ingreso, egreso);
+                UtilidadesInterfaz.mostrarInfo(this, "Reserva confirmada en " + alojamiento.getNombre() + ".");
+            }
             actualizarReservaActual();
             etiquetaDisponibilidad.setText(" ");
         } catch (Exception ex) {
@@ -285,13 +416,15 @@ public class PanelReservas extends JPanel {
             UtilidadesInterfaz.mostrarError(this, "No tenes ninguna reserva activa.");
             return;
         }
-        if (!UtilidadesInterfaz.confirmar(this, "Seguro que queres cancelar tu reserva?")) {
+        if (!UtilidadesInterfaz.confirmar(this,
+                "Seguro que queres cancelar tu reserva? Solo se puede cancelar hasta 24 horas antes del ingreso.")) {
             return;
         }
         try {
             ventana.getGestorReservas().cancelarReserva(reserva.getId());
             UtilidadesInterfaz.mostrarInfo(this, "Reserva cancelada.");
             actualizarReservaActual();
+            etiquetaDisponibilidad.setText(" ");
         } catch (Exception ex) {
             UtilidadesInterfaz.mostrarError(this, ex.getMessage());
         }

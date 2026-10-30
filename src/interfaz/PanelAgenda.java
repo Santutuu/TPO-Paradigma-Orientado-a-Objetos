@@ -207,7 +207,7 @@ public class PanelAgenda extends JPanel {
                 UtilidadesInterfaz.mostrarError(this, "Selecciona una fecha.");
                 return;
             }
-            eventosMostrados = ventana.getGestorEventos().listarPorFecha(fecha);
+            eventosMostrados = ventana.getGestorEventos().agendaPorFecha(fecha);
             mostrarTabla();
         } catch (Exception ex) {
             UtilidadesInterfaz.mostrarError(this, ex.getMessage());
@@ -231,11 +231,12 @@ public class PanelAgenda extends JPanel {
 
     private void mostrarTabla() {
         // Convierte la lista actual en filas para el modelo de la tabla.
-        String[] columnas = {"Id", "Fecha", "Horario", "Actividad", "Ciudad"};
-        Object[][] filas = new Object[eventosMostrados.size()][5];
+        String[] columnas = {"Id", "Fecha", "Inicio", "Fin", "Actividad", "Ciudad"};
+        Object[][] filas = new Object[eventosMostrados.size()][6];
         for (int i = 0; i < eventosMostrados.size(); i++) {
             Evento e = eventosMostrados.get(i);
-            filas[i] = new Object[]{e.getId(), e.getFecha(), e.getHorario(), e.getActividad(), e.getCiudad()};
+            filas[i] = new Object[]{e.getId(), e.getFecha(), e.getHorario(),
+                    e.getHorarioFin(), e.getActividad(), e.getCiudad()};
         }
         tabla.setModel(UtilidadesInterfaz.modeloTabla(columnas, filas));
     }

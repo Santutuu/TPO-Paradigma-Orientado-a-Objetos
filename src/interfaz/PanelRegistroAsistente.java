@@ -1,10 +1,13 @@
 package interfaz;
 
 import modelo.Asistente;
-import modelo.Ciudad;
+import modelo.TipoDocumento;
 
 import javax.swing.*;
 import java.awt.*;
+import java.text.Collator;
+import java.util.Arrays;
+import java.util.Locale;
 
 /**
  * Formulario de registro de un asistente nuevo.
@@ -15,8 +18,9 @@ public class PanelRegistroAsistente extends JPanel {
     private final JTextField campoNombreUsuario;
     private final JPasswordField campoClave;
     private final JTextField campoNombre;
+    private final JComboBox<TipoDocumento> comboTipoDocumento;
     private final JTextField campoDni;
-    private final JComboBox<Ciudad> comboOrigen;
+    private final JComboBox<String> comboOrigen;
     private static final Color AZUL_OSCURO = new Color(31, 55, 79);
     private static final Color FONDO = new Color(245, 247, 250);
     private static final Color TEXTO = new Color(44, 58, 72);
@@ -33,8 +37,12 @@ public class PanelRegistroAsistente extends JPanel {
         campoNombreUsuario = new JTextField();
         campoClave = new JPasswordField();
         campoNombre = new JTextField();
+        comboTipoDocumento = new JComboBox<>(TipoDocumento.values());
         campoDni = new JTextField();
-        comboOrigen = new JComboBox<>(Ciudad.values());
+        // El origen es el pais: se listan todos los paises y Argentina queda
+        // seleccionada por defecto.
+        comboOrigen = new JComboBox<>(nombresDePaises());
+        comboOrigen.setSelectedItem("Argentina");
 
         // El formulario central reúne los datos necesarios para crear la cuenta.
         JPanel formulario = new JPanel();
@@ -46,9 +54,11 @@ public class PanelRegistroAsistente extends JPanel {
         formulario.add(Box.createVerticalStrut(10));
         formulario.add(crearCampo("Nombre completo", campoNombre));
         formulario.add(Box.createVerticalStrut(10));
-        formulario.add(crearCampo("DNI", campoDni));
+        formulario.add(crearCampo("Tipo de documento", comboTipoDocumento));
         formulario.add(Box.createVerticalStrut(10));
-        formulario.add(crearCampo("Ciudad de origen", comboOrigen));
+        formulario.add(crearCampo("Numero de documento", campoDni));
+        formulario.add(Box.createVerticalStrut(10));
+        formulario.add(crearCampo("Pais de origen", comboOrigen));
 
         JButton botonRegistrar = crearBoton("Registrarme", true, e -> registrar());
         botonRegistrar.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -74,7 +84,11 @@ public class PanelRegistroAsistente extends JPanel {
         centro.setBackground(FONDO);
         centro.setBorder(BorderFactory.createEmptyBorder(22, 24, 22, 24));
         centro.add(contenido);
-        add(centro, BorderLayout.CENTER);
+        // Permite desplazarse si el formulario no entra completo en pantalla.
+        JScrollPane desplazamiento = new JScrollPane(centro);
+        desplazamiento.setBorder(BorderFactory.createEmptyBorder());
+        desplazamiento.getViewport().setBackground(FONDO);
+        add(desplazamiento, BorderLayout.CENTER);
 
         // El pie permite volver a la pantalla de inicio sin completar el registro.
         JButton botonVolver = crearBoton("Volver", false, e -> ventana.mostrarMenuPrincipal());
@@ -148,21 +162,42 @@ public class PanelRegistroAsistente extends JPanel {
         return boton;
     }
 
+    /**
+     * Devuelve los nombres de todos los paises ISO 3166-1 en espanol,
+     * ordenados alfabeticamente.
+     */
+    private static String[] nombresDePaises() {
+        Locale espanol = Locale.forLanguageTag("es-AR");
+        String[] codigos = Locale.getISOCountries();
+        String[] nombres = new String[codigos.length];
+        for (int i = 0; i < codigos.length; i++) {
+            Locale pais = new Locale.Builder().setRegion(codigos[i]).build();
+            nombres[i] = pais.getDisplayCountry(espanol);
+        }
+        Arrays.sort(nombres, Collator.getInstance(espanol));
+        return nombres;
+    }
+
     private void registrar() {
         try {
             // Valida los datos ingresados y solicita al gestor crear la cuenta.
             String nombreUsuario = campoNombreUsuario.getText().trim();
             String clave = new String(campoClave.getPassword());
             String nombre = campoNombre.getText().trim();
+            TipoDocumento tipoDocumento = (TipoDocumento) comboTipoDocumento.getSelectedItem();
             String dni = campoDni.getText().trim();
-            Ciudad origen = (Ciudad) comboOrigen.getSelectedItem();
+            // El modelo guarda el origen como texto (nombre del pais).
+            Object valorOrigen = comboOrigen.getSelectedItem();
+            String origen = valorOrigen == null ? "" : valorOrigen.toString().trim();
 
-            if (nombreUsuario.isEmpty() || clave.isEmpty() || nombre.isEmpty() || dni.isEmpty()) {
+            if (nombreUsuario.isEmpty() || clave.isEmpty() || nombre.isEmpty()
+                    || dni.isEmpty() || origen.isEmpty()) {
                 UtilidadesInterfaz.mostrarError(this, "Completa todos los campos.");
                 return;
             }
 
-            Asistente asistente = new Asistente(0, nombreUsuario, clave, nombre, dni, origen);
+            Asistente asistente = new Asistente(0, nombreUsuario, clave, nombre,
+                    tipoDocumento, dni, origen);
             // Si el gestor registra la cuenta, informa el resultado y vuelve al inicio.
             ventana.getGestorUsuarios().registrarAsistente(asistente);
             UtilidadesInterfaz.mostrarInfo(this, "Asistente registrado correctamente.");

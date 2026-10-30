@@ -12,8 +12,11 @@ import javax.swing.*;
 import java.util.List;
 
 /**
- * Credenciales de prueba documentadas  admin/admin123 (administrador), juan/maria/pedro con 1234 (asistentes), y los alojamientos sancayetano, sanfrancisco, granlujan,
- *      caritas, sanpablo con 1234
+ * Credenciales de prueba documentadas:
+ * - Administrador: admin / admin123
+ * - Asistentes: juan, maria, pedro / 1234; Santino / aloha
+ * - Alojamientos: sancayetano, sanfrancisco, caritas, sanpablo / 1234
+ * - Hoteles: granlujan, hotelcentro / 1234
  */
 public class Main {
 
