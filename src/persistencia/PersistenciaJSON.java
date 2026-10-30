@@ -8,13 +8,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Se encarga de cargar y guardar los tres archivos JSON de la aplicacion.
+ * Se encarga de cargar y guardar los archivos JSON de la aplicacion.
  * La escritura se realiza con StringBuilder y la lectura con el ParserJSON propio.
  *
  * El modelo usa identificadores numericos para relacionar cuentas, eventos y
@@ -136,6 +137,47 @@ public class PersistenciaJSON {
         }
         sb.append("]\n");
         escribirArchivo("reservas.json", sb.toString());
+    }
+
+    // ------------------------------------------------------------------ //
+    // NOTIFICACIONES                                                      //
+    // ------------------------------------------------------------------ //
+
+    /**
+     * Carga las notificaciones. Si el archivo todavia no existe, devuelve una
+     * lista vacia para no impedir el arranque de la aplicacion.
+     */
+    public List<Notificacion> cargarNotificaciones() throws IOException {
+        Path archivo = Paths.get(directorio, "notificaciones.json");
+        if (!Files.exists(archivo)) {
+            return new ArrayList<>();
+        }
+        if (Files.readString(archivo, StandardCharsets.UTF_8).trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        Object raiz = parsearArchivo("notificaciones.json");
+        if (!(raiz instanceof List)) {
+            throw new IOException("Formato invalido en notificaciones.json: se esperaba un arreglo.");
+        }
+        List<Notificacion> notificaciones = new ArrayList<>();
+        for (Object elemento : (List<?>) raiz) {
+            notificaciones.add(construirNotificacion((Map<String, Object>) elemento));
+        }
+        return notificaciones;
+    }
+
+    public void guardarNotificaciones(List<Notificacion> notificaciones) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[\n");
+        for (int i = 0; i < notificaciones.size(); i++) {
+            sb.append("  ").append(notificacionJson(notificaciones.get(i)));
+            if (i < notificaciones.size() - 1) {
+                sb.append(",");
+            }
+            sb.append("\n");
+        }
+        sb.append("]\n");
+        escribirArchivo("notificaciones.json", sb.toString());
     }
 
     // ------------------------------------------------------------------ //
@@ -292,6 +334,16 @@ public class PersistenciaJSON {
                 cantidadPersonas, precioPorNoche, ingreso, egreso, estado);
     }
 
+    private Notificacion construirNotificacion(Map<String, Object> m) throws IOException {
+        int id = numero(m.get("id")).intValue();
+        int idDestinatario = numero(m.get("idDestinatario")).intValue();
+        LocalDateTime fechaHora = LocalDateTime.parse((String) m.get("fechaHora"));
+        String tipo = (String) m.get("tipo");
+        String mensaje = (String) m.get("mensaje");
+        boolean leida = Boolean.TRUE.equals(m.get("leida"));
+        return new Notificacion(id, idDestinatario, fechaHora, tipo, mensaje, leida);
+    }
+
     /** Lee el horario de fin; si el archivo es viejo, estima una hora de duracion. */
     private LocalTime horarioFin(Map<String, Object> m, LocalTime horario) {
         Object valor = m.get("horarioFin");
@@ -376,6 +428,15 @@ public class PersistenciaJSON {
                 + ", \"horarioFin\": " + jsonCadena(e.getHorarioFin().toString())
                 + ", \"actividad\": " + jsonCadena(e.getActividad())
                 + ", \"ciudad\": " + jsonCadena(e.getCiudad().name()) + " }";
+    }
+
+    private String notificacionJson(Notificacion n) {
+        return "{ \"id\": " + n.getId()
+                + ", \"idDestinatario\": " + n.getIdDestinatario()
+                + ", \"fechaHora\": " + jsonCadena(n.getFechaHora().toString())
+                + ", \"tipo\": " + jsonCadena(n.getTipo())
+                + ", \"mensaje\": " + jsonCadena(n.getMensaje())
+                + ", \"leida\": " + n.isLeida() + " }";
     }
 
     private String tipoUsuario(Usuario u) {

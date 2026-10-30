@@ -5,6 +5,7 @@ import modelo.Usuario;
 import persistencia.PersistenciaJSON;
 import servicios.GestorAlojamientos;
 import servicios.GestorEventos;
+import servicios.GestorNotificaciones;
 import servicios.GestorReservas;
 import servicios.GestorUsuarios;
 import servicios.NotificadorReservas;
@@ -32,12 +33,17 @@ public class Main {
             GestorUsuarios gestorUsuarios = new GestorUsuarios(usuarios, persistencia);
             GestorEventos gestorEventos = new GestorEventos(eventos, gestorUsuarios, persistencia);
             GestorReservas gestorReservas = new GestorReservas(reservas, gestorUsuarios, persistencia);
+            GestorNotificaciones gestorNotificaciones =
+                    new GestorNotificaciones(gestorUsuarios, persistencia);
+            gestorEventos.agregarObservador(gestorNotificaciones);
+            gestorReservas.agregarObservador(gestorNotificaciones);
             // Observador de ejemplo: deja un mensaje cuando se crea o cancela una reserva.
             gestorReservas.agregarObservador(new NotificadorReservas());
             GestorAlojamientos gestorAlojamientos = new GestorAlojamientos(gestorUsuarios, gestorReservas, persistencia);
 
             SwingUtilities.invokeLater(() -> new VentanaPrincipal(
-                    gestorUsuarios, gestorEventos, gestorReservas, gestorAlojamientos));
+                    gestorUsuarios, gestorEventos, gestorReservas, gestorAlojamientos,
+                    gestorNotificaciones));
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null,
                     "No se pudo iniciar la aplicacion:\n" + e.getMessage(),

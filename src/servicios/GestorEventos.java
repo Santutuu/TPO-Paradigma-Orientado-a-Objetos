@@ -21,12 +21,27 @@ public class GestorEventos {
     // Lo necesito para saber que asistentes estan inscriptos.
     private final GestorUsuarios gestorUsuarios;
     private final PersistenciaJSON persistencia;
+    // Observadores que se enteran de las altas y modificaciones de eventos.
+    private final List<EventoObserver> observadores;
 
     public GestorEventos(List<Evento> eventos, GestorUsuarios gestorUsuarios,
                          PersistenciaJSON persistencia) {
         this.eventos = eventos;
         this.gestorUsuarios = gestorUsuarios;
         this.persistencia = persistencia;
+        this.observadores = new ArrayList<>();
+    }
+
+    /** Agrega un observador que sera notificado ante cambios de eventos. */
+    public void agregarObservador(EventoObserver observador) {
+        if (observador != null && !observadores.contains(observador)) {
+            observadores.add(observador);
+        }
+    }
+
+    /** Quita un observador previamente registrado. */
+    public void quitarObservador(EventoObserver observador) {
+        observadores.remove(observador);
     }
 
     public List<Evento> getEventos() {
@@ -55,6 +70,7 @@ public class GestorEventos {
         Evento evento = new Evento(proximoId(), fecha, horario, horarioFin, actividad, ciudad);
         eventos.add(evento);
         guardarEventos();
+        notificarEventoCreado(evento);
         return evento;
     }
 
@@ -96,6 +112,7 @@ public class GestorEventos {
         // Las cuentas guardan los ids de los eventos, pero se reescriben por si
         // el evento cambio y para mantener ambos archivos consistentes.
         guardarCuentas();
+        notificarEventoModificado(evento);
     }
 
     public List<Evento> listarTodosOrdenados() {
@@ -177,6 +194,28 @@ public class GestorEventos {
             }
         }
         return maximo + 1;
+    }
+
+    private void notificarEventoCreado(Evento evento) {
+        for (EventoObserver observador : new ArrayList<>(observadores)) {
+            try {
+                observador.eventoCreado(evento);
+            } catch (RuntimeException ex) {
+                System.err.println("Un observador fallo al notificar un evento creado: "
+                        + ex.getMessage());
+            }
+        }
+    }
+
+    private void notificarEventoModificado(Evento evento) {
+        for (EventoObserver observador : new ArrayList<>(observadores)) {
+            try {
+                observador.eventoModificado(evento);
+            } catch (RuntimeException ex) {
+                System.err.println("Un observador fallo al notificar un evento modificado: "
+                        + ex.getMessage());
+            }
+        }
     }
 
     private void guardarEventos() {
