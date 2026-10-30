@@ -85,7 +85,8 @@ public class PanelAdministrador extends JPanel {
                     UtilidadesInterfaz.leerHora(campoHorario.getText()),
                     UtilidadesInterfaz.leerHora(campoHorarioFin.getText()),
                     campoActividad.getText(),
-                    (Ciudad) comboCiudad.getSelectedItem());
+                    (Ciudad) comboCiudad.getSelectedItem()
+            );
             UtilidadesInterfaz.mostrarInfo(this, "Evento registrado correctamente.");
         } catch (Exception ex) {
             UtilidadesInterfaz.mostrarError(this, ex.getMessage());
