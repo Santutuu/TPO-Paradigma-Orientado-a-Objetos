@@ -34,7 +34,6 @@ tp7/
 │   └── reservas.json
 ├── notas/
 │   ├── README.md
-│   └── alma.md
 └── uml+/
     └── uml.pdf
 ```
