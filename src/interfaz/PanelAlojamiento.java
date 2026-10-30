@@ -2,6 +2,7 @@ package interfaz;
 
 import modelo.Alojamiento;
 import modelo.Ciudad;
+import modelo.Hotel;
 import modelo.Reserva;
 
 import javax.swing.*;
@@ -51,7 +52,15 @@ public class PanelAlojamiento extends JPanel {
         acciones.setAlignmentX(Component.LEFT_ALIGNMENT);
         acciones.add(crearBotonMenu("Modificar mis datos", e -> modificarDatos()));
         acciones.add(Box.createVerticalStrut(8));
-        acciones.add(crearBotonMenu("Modificar capacidad", e -> modificarCapacidad()));
+        if (alojamiento instanceof Hotel) {
+            // Un hotel no tiene una capacidad suelta: edita precios y
+            // habitaciones por tipo.
+            acciones.add(crearBotonMenu("Modificar precios por tipo", e -> modificarPrecios()));
+            acciones.add(Box.createVerticalStrut(8));
+            acciones.add(crearBotonMenu("Modificar habitaciones", e -> modificarHabitaciones()));
+        } else {
+            acciones.add(crearBotonMenu("Modificar capacidad", e -> modificarCapacidad()));
+        }
         acciones.add(Box.createVerticalStrut(8));
         acciones.add(crearBotonMenu("Consultar huespedes en un periodo", e -> consultarHuespedes()));
         contenido.add(acciones);
@@ -239,6 +248,100 @@ public class PanelAlojamiento extends JPanel {
         }
     }
 
+    // Muestro los cuatro precios actuales y mando los nuevos al gestor.
+    private void modificarPrecios() {
+        Hotel hotel = (Hotel) ventana.getSesion();
+        JTextField campo1 = new JTextField(String.valueOf(hotel.getPrecioPorNoche(1)));
+        JTextField campo2 = new JTextField(String.valueOf(hotel.getPrecioPorNoche(2)));
+        JTextField campo3 = new JTextField(String.valueOf(hotel.getPrecioPorNoche(3)));
+        JTextField campo4 = new JTextField(String.valueOf(hotel.getPrecioPorNoche(4)));
+
+        JPanel formulario = crearFormulario(
+                crearCampo("Precio habitacion simple", campo1),
+                crearCampo("Precio habitacion doble", campo2),
+                crearCampo("Precio habitacion triple", campo3),
+                crearCampo("Precio habitacion cuadruple", campo4));
+
+        int opcion = JOptionPane.showConfirmDialog(this, formulario, "Modificar precios por tipo",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (opcion != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        try {
+            double precio1 = leerPrecio(campo1);
+            double precio2 = leerPrecio(campo2);
+            double precio3 = leerPrecio(campo3);
+            double precio4 = leerPrecio(campo4);
+            ventana.getGestorAlojamientos().modificarPrecios(
+                    hotel.getId(), hotel.getId(), precio1, precio2, precio3, precio4);
+            UtilidadesInterfaz.mostrarInfo(this, "Precios actualizados correctamente.");
+            ventana.mostrarMenuAlojamiento();
+        } catch (NumberFormatException ex) {
+            UtilidadesInterfaz.mostrarError(this, "Los precios deben ser numeros validos.");
+        } catch (Exception ex) {
+            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+        }
+    }
+
+    private double leerPrecio(JTextField campo) {
+        return Double.parseDouble(campo.getText().trim().replace(',', '.'));
+    }
+
+    // Pido cuantas habitaciones hay de cada tipo y actualizo el hotel.
+    private void modificarHabitaciones() {
+        Hotel hotel = (Hotel) ventana.getSesion();
+        JTextField campo1 = new JTextField(String.valueOf(hotel.getCantidadHabitaciones(1)));
+        JTextField campo2 = new JTextField(String.valueOf(hotel.getCantidadHabitaciones(2)));
+        JTextField campo3 = new JTextField(String.valueOf(hotel.getCantidadHabitaciones(3)));
+        JTextField campo4 = new JTextField(String.valueOf(hotel.getCantidadHabitaciones(4)));
+
+        JPanel formulario = crearFormulario(
+                crearCampo("Habitaciones para 1 persona", campo1),
+                crearCampo("Habitaciones para 2 personas", campo2),
+                crearCampo("Habitaciones para 3 personas", campo3),
+                crearCampo("Habitaciones para 4 personas", campo4));
+
+        int opcion = JOptionPane.showConfirmDialog(this, formulario, "Modificar habitaciones",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (opcion != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        try {
+            int simples = leerCantidadHabitaciones(campo1, "1 persona");
+            int dobles = leerCantidadHabitaciones(campo2, "2 personas");
+            int triples = leerCantidadHabitaciones(campo3, "3 personas");
+            int cuadruples = leerCantidadHabitaciones(campo4, "4 personas");
+            ventana.getGestorAlojamientos().modificarHabitaciones(
+                    hotel.getId(), hotel.getId(), simples, dobles, triples, cuadruples);
+            UtilidadesInterfaz.mostrarInfo(this, "Habitaciones actualizadas correctamente.");
+            ventana.mostrarMenuAlojamiento();
+        } catch (Exception ex) {
+            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+        }
+    }
+
+    // Las cantidades no pueden ser negativas; si esta vacio tomo 0.
+    private int leerCantidadHabitaciones(JTextField campo, String etiqueta) {
+        String texto = campo.getText().trim();
+        if (texto.isEmpty()) {
+            return 0;
+        }
+        int cantidad;
+        try {
+            cantidad = Integer.parseInt(texto);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("La cantidad de habitaciones para "
+                    + etiqueta + " debe ser un numero entero.");
+        }
+        if (cantidad < 0) {
+            throw new IllegalArgumentException("La cantidad de habitaciones para "
+                    + etiqueta + " no puede ser negativa.");
+        }
+        return cantidad;
+    }
+
     private void consultarHuespedes() {
         Alojamiento alojamiento = (Alojamiento) ventana.getSesion();
 
@@ -304,14 +407,18 @@ public class PanelAlojamiento extends JPanel {
 
     private void mostrarHuespedes(List<Reserva> huespedes, LocalDate desde, LocalDate hasta) {
         // Presenta los resultados en una tabla de solo lectura con estilo uniforme.
-        String[] columnas = {"Reserva", "Asistente", "Ingreso", "Egreso"};
-        Object[][] filas = new Object[huespedes.size()][4];
+        // Para hoteles agrego el tipo de habitacion y cuantas personas van.
+        String[] columnas = {"Reserva", "Asistente", "Habitacion", "Personas", "Ingreso", "Egreso"};
+        Object[][] filas = new Object[huespedes.size()][6];
         for (int i = 0; i < huespedes.size(); i++) {
             Reserva reserva = huespedes.get(i);
             String nombreAsistente = String.valueOf(
                     ventana.getGestorUsuarios().buscarPorId(reserva.getIdAsistente()).getNombre());
+            String habitacion = reserva.getTipoHabitacion() == 0
+                    ? "-" : reserva.getTipoHabitacion() + " personas";
             filas[i] = new Object[]{
-                    reserva.getId(), nombreAsistente, reserva.getIngreso(), reserva.getEgreso()
+                    reserva.getId(), nombreAsistente, habitacion,
+                    reserva.getCantidadPersonas(), reserva.getIngreso(), reserva.getEgreso()
             };
         }
 

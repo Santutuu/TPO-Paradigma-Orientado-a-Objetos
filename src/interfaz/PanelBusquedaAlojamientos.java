@@ -3,6 +3,7 @@ package interfaz;
 import modelo.Alojamiento;
 import modelo.Asistente;
 import modelo.Ciudad;
+import modelo.Hotel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -141,11 +142,21 @@ public class PanelBusquedaAlojamientos extends JPanel {
         alojamientosMostrados = ventana.getGestorUsuarios().listarAlojamientosPorCiudad(ciudad);
         alojamientosMostrados.sort(Comparator.comparing(Alojamiento::getNombre));
 
-        String[] columnas = {"Nombre", "Tipo", "Descripcion", "Capacidad"};
-        Object[][] filas = new Object[alojamientosMostrados.size()][4];
+        // Para hoteles muestro precios y habitaciones; en los demas queda "-".
+        String[] columnas = {"Nombre", "Tipo", "Descripcion", "Precios por noche", "Habitaciones", "Capacidad"};
+        Object[][] filas = new Object[alojamientosMostrados.size()][6];
         for (int i = 0; i < alojamientosMostrados.size(); i++) {
             Alojamiento a = alojamientosMostrados.get(i);
-            filas[i] = new Object[]{a.getNombre(), a.getClass().getSimpleName(), a.descripcion(), a.getCapacidad()};
+            String precio = "-";
+            String habitaciones = "-";
+            if (a instanceof Hotel) {
+                Hotel hotel = (Hotel) a;
+                // El hotel arma los resumenes de precios y habitaciones.
+                precio = hotel.resumenPrecios();
+                habitaciones = hotel.resumenHabitaciones();
+            }
+            filas[i] = new Object[]{a.getNombre(), a.getClass().getSimpleName(),
+                    a.descripcion(), precio, habitaciones, a.getCapacidad()};
         }
         tabla.setModel(UtilidadesInterfaz.modeloTabla(columnas, filas));
     }

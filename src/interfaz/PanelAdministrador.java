@@ -41,16 +41,16 @@ public class PanelAdministrador extends JPanel {
     }
 
     private void registrarEvento() {
-        JTextField campoId = new JTextField("", 10);
         JTextField campoFecha = new JTextField("2026-11-08", 12);
         JTextField campoHorario = new JTextField("10:00", 12);
+        JTextField campoHorarioFin = new JTextField("12:00", 12);
         JTextField campoActividad = new JTextField("", 20);
         JComboBox<Ciudad> comboCiudad = new JComboBox<>(Ciudad.values());
 
         JPanel form = UtilidadesInterfaz.formulario(
-                UtilidadesInterfaz.fila("Id (numero):", campoId),
                 UtilidadesInterfaz.fila("Fecha (AAAA-MM-DD):", campoFecha),
-                UtilidadesInterfaz.fila("Horario (HH:mm):", campoHorario),
+                UtilidadesInterfaz.fila("Inicio (HH:mm):", campoHorario),
+                UtilidadesInterfaz.fila("Fin (HH:mm):", campoHorarioFin),
                 UtilidadesInterfaz.fila("Actividad:", campoActividad),
                 UtilidadesInterfaz.fila("Ciudad:", comboCiudad)
         );
@@ -80,19 +80,14 @@ public class PanelAdministrador extends JPanel {
         }
 
         try {
-            int id = Integer.parseInt(campoId.getText().trim());
-            Evento evento = new Evento(
-                    id,
+            ventana.getGestorEventos().registrar(
                     UtilidadesInterfaz.leerFecha(campoFecha.getText()),
                     UtilidadesInterfaz.leerHora(campoHorario.getText()),
+                    UtilidadesInterfaz.leerHora(campoHorarioFin.getText()),
                     campoActividad.getText(),
                     (Ciudad) comboCiudad.getSelectedItem()
             );
-
-            ventana.getGestorEventos().registrarEvento(evento);
             UtilidadesInterfaz.mostrarInfo(this, "Evento registrado correctamente.");
-        } catch (NumberFormatException ex) {
-            UtilidadesInterfaz.mostrarError(this, "El id debe ser un numero entero.");
         } catch (Exception ex) {
             UtilidadesInterfaz.mostrarError(this, ex.getMessage());
         }
@@ -122,7 +117,7 @@ public class PanelAdministrador extends JPanel {
         }
 
         DefaultTableModel modelo = new DefaultTableModel(
-                new Object[]{"ID", "Fecha", "Hora", "Actividad", "Ciudad"}, 0) {
+                new Object[]{"ID", "Fecha", "Inicio", "Fin", "Actividad", "Ciudad"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -230,13 +225,15 @@ public class PanelAdministrador extends JPanel {
 
         JTextField campoFecha = new JTextField(eventoSeleccionado.getFecha().toString(), 12);
         JTextField campoHorario = new JTextField(eventoSeleccionado.getHorario().toString(), 12);
+        JTextField campoHorarioFin = new JTextField(eventoSeleccionado.getHorarioFin().toString(), 12);
         JTextField campoActividad = new JTextField(eventoSeleccionado.getActividad(), 20);
         JComboBox<Ciudad> comboCiudadEdicion = new JComboBox<>(Ciudad.values());
         comboCiudadEdicion.setSelectedItem(eventoSeleccionado.getCiudad());
 
         JPanel form = UtilidadesInterfaz.formulario(
                 UtilidadesInterfaz.fila("Fecha (AAAA-MM-DD):", campoFecha),
-                UtilidadesInterfaz.fila("Horario (HH:mm):", campoHorario),
+                UtilidadesInterfaz.fila("Inicio (HH:mm):", campoHorario),
+                UtilidadesInterfaz.fila("Fin (HH:mm):", campoHorarioFin),
                 UtilidadesInterfaz.fila("Actividad:", campoActividad),
                 UtilidadesInterfaz.fila("Ciudad:", comboCiudadEdicion)
         );
@@ -270,6 +267,7 @@ public class PanelAdministrador extends JPanel {
                     eventoSeleccionado.getId(),
                     UtilidadesInterfaz.leerFecha(campoFecha.getText()),
                     UtilidadesInterfaz.leerHora(campoHorario.getText()),
+                    UtilidadesInterfaz.leerHora(campoHorarioFin.getText()),
                     campoActividad.getText(),
                     (Ciudad) comboCiudadEdicion.getSelectedItem()
             );
@@ -286,6 +284,7 @@ public class PanelAdministrador extends JPanel {
                     evento.getId(),
                     evento.getFecha(),
                     evento.getHorario(),
+                    evento.getHorarioFin(),
                     evento.getActividad(),
                     evento.getCiudad()
             });

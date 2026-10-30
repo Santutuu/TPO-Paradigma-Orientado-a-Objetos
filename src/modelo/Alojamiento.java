@@ -7,6 +7,7 @@ package modelo;
  */
 public abstract class Alojamiento extends Usuario {
 
+    // Datos comunes a parroquias, hoteles y espacios de organizacion.
     private Ciudad ciudad;
     private String direccion;
     private int capacidad;
@@ -54,9 +55,13 @@ public abstract class Alojamiento extends Usuario {
      */
     public abstract String descripcion();
 
+    /**
+     * Permite que los combos y listas muestren el nombre en lugar de la
+     * referencia del objeto.
+     */
     @Override
     public String toString() {
-        return getNombre() + " (" + getCiudad() + ")";
+        return getNombre();
     }
 
     @Override

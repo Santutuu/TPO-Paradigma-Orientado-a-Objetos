@@ -21,8 +21,20 @@ public class PanelRegistroAlojamiento extends JPanel {
     private final JTextField campoCapacidad;
     private final JComboBox<String> comboTipo;
     private final JPanel panelExtra;
+    // Campos que aparecen u ocultan segun el tipo de alojamiento.
+    private final JTextField campoResponsable;
     private final JTextField campoCategoria;
+    // Un precio por cada tipo de habitacion del hotel.
+    private final JTextField campoPrecio1;
+    private final JTextField campoPrecio2;
+    private final JTextField campoPrecio3;
+    private final JTextField campoPrecio4;
+    private final JTextField campoHabitaciones1;
+    private final JTextField campoHabitaciones2;
+    private final JTextField campoHabitaciones3;
+    private final JTextField campoHabitaciones4;
     private final JTextField campoOrganizador;
+    private JPanel filaCapacidad;
     private static final Color AZUL_OSCURO = new Color(31, 55, 79);
     private static final Color FONDO = new Color(245, 247, 250);
     private static final Color TEXTO = new Color(44, 58, 72);
@@ -42,7 +54,16 @@ public class PanelRegistroAlojamiento extends JPanel {
         campoDireccion = new JTextField();
         campoCapacidad = new JTextField();
         comboTipo = new JComboBox<>(new String[]{"PARROQUIA", "HOTEL", "ESPACIO_ORG"});
+        campoResponsable = new JTextField();
         campoCategoria = new JTextField();
+        campoPrecio1 = new JTextField();
+        campoPrecio2 = new JTextField();
+        campoPrecio3 = new JTextField();
+        campoPrecio4 = new JTextField();
+        campoHabitaciones1 = new JTextField();
+        campoHabitaciones2 = new JTextField();
+        campoHabitaciones3 = new JTextField();
+        campoHabitaciones4 = new JTextField();
         campoOrganizador = new JTextField();
 
         panelExtra = new JPanel();
@@ -71,7 +92,8 @@ public class PanelRegistroAlojamiento extends JPanel {
         formulario.add(Box.createVerticalStrut(8));
         formulario.add(crearCampo("Dirección", campoDireccion));
         formulario.add(Box.createVerticalStrut(8));
-        formulario.add(crearCampo("Capacidad", campoCapacidad));
+        filaCapacidad = crearCampo("Capacidad", campoCapacidad);
+        formulario.add(filaCapacidad);
         formulario.add(panelExtra);
 
         JButton botonRegistrar = crearBoton("Registrar", true, e -> registrar());
@@ -92,7 +114,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         contenido.add(formulario);
         contenido.add(Box.createVerticalStrut(14));
         contenido.add(botonRegistrar);
-        contenido.setPreferredSize(new Dimension(560, contenido.getPreferredSize().height));
 
         JPanel centro = new JPanel(new GridBagLayout());
         centro.setBackground(FONDO);
@@ -179,13 +200,84 @@ public class PanelRegistroAlojamiento extends JPanel {
     private void actualizarCampoExtra() {
         panelExtra.removeAll();
         String tipo = (String) comboTipo.getSelectedItem();
-        if ("HOTEL".equals(tipo)) {
+        boolean esHotel = "HOTEL".equals(tipo);
+
+        if ("PARROQUIA".equals(tipo)) {
+            panelExtra.add(crearCampo("Responsable", campoResponsable));
+        } else if (esHotel) {
+            // Para el hotel pido categoria, los cuatro precios y las cuatro
+            // cantidades de habitaciones.
             panelExtra.add(crearCampo("Categoria (1 a 5)", campoCategoria));
+            panelExtra.add(crearCampo("Precio habitacion simple", campoPrecio1));
+            panelExtra.add(crearCampo("Precio habitacion doble", campoPrecio2));
+            panelExtra.add(crearCampo("Precio habitacion triple", campoPrecio3));
+            panelExtra.add(crearCampo("Precio habitacion cuadruple", campoPrecio4));
+            panelExtra.add(crearCampo("Habitaciones para 1 persona", campoHabitaciones1));
+            panelExtra.add(crearCampo("Habitaciones para 2 personas", campoHabitaciones2));
+            panelExtra.add(crearCampo("Habitaciones para 3 personas", campoHabitaciones3));
+            panelExtra.add(crearCampo("Habitaciones para 4 personas", campoHabitaciones4));
         } else if ("ESPACIO_ORG".equals(tipo)) {
             panelExtra.add(crearCampo("Organizador", campoOrganizador));
         }
+
+        // En un hotel la capacidad se calcula a partir de las habitaciones.
+        if (filaCapacidad != null) {
+            filaCapacidad.setVisible(!esHotel);
+            if (filaCapacidad.getParent() != null) {
+                filaCapacidad.getParent().revalidate();
+            }
+        }
         panelExtra.revalidate();
         panelExtra.repaint();
+        revalidate();
+        repaint();
+    }
+
+    // Convierto el texto del precio a double y acepto coma o punto decimal.
+    private double leerPrecio(JTextField campo, String etiqueta) {
+        String texto = campo.getText().trim();
+        if (texto.isEmpty()) {
+            return 0.0;
+        }
+        double precio;
+        try {
+            precio = Double.parseDouble(texto.replace(',', '.'));
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("El precio para " + etiqueta
+                    + " debe ser un numero valido.");
+        }
+        if (precio < 0) {
+            throw new IllegalArgumentException("El precio para " + etiqueta
+                    + " no puede ser negativo.");
+        }
+        return precio;
+    }
+
+    private void validarPrecioHabitacion(double precio, int habitaciones, String etiqueta) {
+        if (habitaciones > 0 && precio <= 0) {
+            throw new IllegalArgumentException("El precio para " + etiqueta
+                    + " debe ser mayor a cero porque hay habitaciones de ese tipo.");
+        }
+    }
+
+    // Si el campo esta vacio tomo 0; si escribieron cualquier cosa, aviso.
+    private int leerCantidadHabitaciones(JTextField campo, String etiqueta) {
+        String texto = campo.getText().trim();
+        if (texto.isEmpty()) {
+            return 0;
+        }
+        int cantidad;
+        try {
+            cantidad = Integer.parseInt(texto);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("La cantidad de habitaciones para "
+                    + etiqueta + " debe ser un numero entero.");
+        }
+        if (cantidad < 0) {
+            throw new IllegalArgumentException("La cantidad de habitaciones para "
+                    + etiqueta + " no puede ser negativa.");
+        }
+        return cantidad;
     }
 
     private void registrar() {
@@ -196,30 +288,55 @@ public class PanelRegistroAlojamiento extends JPanel {
             String nombre = campoNombre.getText().trim();
             Ciudad ciudad = (Ciudad) comboCiudad.getSelectedItem();
             String direccion = campoDireccion.getText().trim();
-            int capacidad = Integer.parseInt(campoCapacidad.getText().trim());
+            String tipo = (String) comboTipo.getSelectedItem();
 
             if (nombreUsuario.isEmpty() || clave.isEmpty() || nombre.isEmpty() || direccion.isEmpty()) {
                 UtilidadesInterfaz.mostrarError(this, "Completa todos los campos.");
                 return;
             }
 
+            // En los hoteles la capacidad se calcula con las habitaciones.
+            int capacidad = "HOTEL".equals(tipo)
+                    ? 0 : Integer.parseInt(campoCapacidad.getText().trim());
+
             Alojamiento alojamiento;
-            String tipo = (String) comboTipo.getSelectedItem();
             // Cada opción crea el modelo concreto que corresponde al tipo elegido.
             switch (tipo) {
                 case "PARROQUIA":
-                    alojamiento = new Parroquia(0, nombreUsuario, clave, nombre, ciudad, direccion, capacidad);
+                    String responsable = campoResponsable.getText().trim();
+                    if (responsable.isEmpty()) {
+                        throw new IllegalArgumentException("El responsable es obligatorio.");
+                    }
+                    alojamiento = UsuarioFactory.crearParroquia(0, nombreUsuario, clave,
+                            nombre, ciudad, direccion, capacidad, responsable);
                     break;
                 case "HOTEL":
+                    // Leo los cuatro precios y las cuatro cantidades. Despues
+                    // valido que los tipos con habitaciones tengan precio.
                     int categoria = Integer.parseInt(campoCategoria.getText().trim());
-                    alojamiento = new Hotel(0, nombreUsuario, clave, nombre, ciudad, direccion, capacidad, categoria);
+                    double precio1 = leerPrecio(campoPrecio1, "1 persona");
+                    double precio2 = leerPrecio(campoPrecio2, "2 personas");
+                    double precio3 = leerPrecio(campoPrecio3, "3 personas");
+                    double precio4 = leerPrecio(campoPrecio4, "4 personas");
+                    int habitaciones1 = leerCantidadHabitaciones(campoHabitaciones1, "1 persona");
+                    int habitaciones2 = leerCantidadHabitaciones(campoHabitaciones2, "2 personas");
+                    int habitaciones3 = leerCantidadHabitaciones(campoHabitaciones3, "3 personas");
+                    int habitaciones4 = leerCantidadHabitaciones(campoHabitaciones4, "4 personas");
+                    validarPrecioHabitacion(precio1, habitaciones1, "1 persona");
+                    validarPrecioHabitacion(precio2, habitaciones2, "2 personas");
+                    validarPrecioHabitacion(precio3, habitaciones3, "3 personas");
+                    validarPrecioHabitacion(precio4, habitaciones4, "4 personas");
+                    alojamiento = UsuarioFactory.crearHotel(0, nombreUsuario, clave, nombre,
+                            ciudad, direccion, categoria, precio1, precio2, precio3, precio4,
+                            habitaciones1, habitaciones2, habitaciones3, habitaciones4);
                     break;
                 case "ESPACIO_ORG":
                     String organizador = campoOrganizador.getText().trim();
                     if (organizador.isEmpty()) {
                         throw new IllegalArgumentException("El organizador es obligatorio.");
                     }
-                    alojamiento = new EspacioOrg(0, nombreUsuario, clave, nombre, ciudad, direccion, capacidad, organizador);
+                    alojamiento = UsuarioFactory.crearEspacioOrg(0, nombreUsuario, clave,
+                            nombre, ciudad, direccion, capacidad, organizador);
                     break;
                 default:
                     throw new IllegalArgumentException("Tipo de alojamiento invalido.");
@@ -230,7 +347,8 @@ public class PanelRegistroAlojamiento extends JPanel {
             UtilidadesInterfaz.mostrarInfo(this, "Alojamiento registrado correctamente.");
             ventana.mostrarMenuPrincipal();
         } catch (NumberFormatException ex) {
-            UtilidadesInterfaz.mostrarError(this, "La capacidad y la categoria deben ser numeros enteros.");
+            UtilidadesInterfaz.mostrarError(this, "La capacidad, la categoria, el precio y las "
+                    + "habitaciones deben ser numeros validos.");
         } catch (Exception ex) {
             UtilidadesInterfaz.mostrarError(this, ex.getMessage());
         }

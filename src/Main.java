@@ -7,13 +7,17 @@ import servicios.GestorAlojamientos;
 import servicios.GestorEventos;
 import servicios.GestorReservas;
 import servicios.GestorUsuarios;
+import servicios.NotificadorReservas;
 
 import javax.swing.*;
 import java.util.List;
 
 /**
- * Credenciales de prueba documentadas  admin/admin123 (administrador), juan/maria/pedro con 1234 (asistentes), y los alojamientos sancayetano, sanfrancisco, granlujan,
- *      caritas, sanpablo con 1234
+ * Credenciales de prueba documentadas:
+ * - Administrador: admin / admin123
+ * - Asistentes: juan, maria, pedro / 1234; Santino / aloha
+ * - Alojamientos: sancayetano, sanfrancisco, caritas, sanpablo / 1234
+ * - Hoteles: granlujan, hotelcentro / 1234
  */
 public class Main {
 
@@ -28,6 +32,8 @@ public class Main {
             GestorUsuarios gestorUsuarios = new GestorUsuarios(usuarios, persistencia);
             GestorEventos gestorEventos = new GestorEventos(eventos, gestorUsuarios, persistencia);
             GestorReservas gestorReservas = new GestorReservas(reservas, gestorUsuarios, persistencia);
+            // Observador de ejemplo: deja un mensaje cuando se crea o cancela una reserva.
+            gestorReservas.agregarObservador(new NotificadorReservas());
             GestorAlojamientos gestorAlojamientos = new GestorAlojamientos(gestorUsuarios, gestorReservas, persistencia);
 
             SwingUtilities.invokeLater(() -> new VentanaPrincipal(
