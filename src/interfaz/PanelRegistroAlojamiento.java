@@ -307,8 +307,8 @@ public class PanelRegistroAlojamiento extends JPanel {
                     if (responsable.isEmpty()) {
                         throw new IllegalArgumentException("El responsable es obligatorio.");
                     }
-                    alojamiento = new Parroquia(0, nombreUsuario, clave, nombre, ciudad,
-                            direccion, capacidad, responsable);
+                    alojamiento = UsuarioFactory.crearParroquia(0, nombreUsuario, clave,
+                            nombre, ciudad, direccion, capacidad, responsable);
                     break;
                 case "HOTEL":
                     // Leo los cuatro precios y las cuatro cantidades. Despues
@@ -326,8 +326,8 @@ public class PanelRegistroAlojamiento extends JPanel {
                     validarPrecioHabitacion(precio2, habitaciones2, "2 personas");
                     validarPrecioHabitacion(precio3, habitaciones3, "3 personas");
                     validarPrecioHabitacion(precio4, habitaciones4, "4 personas");
-                    alojamiento = new Hotel(0, nombreUsuario, clave, nombre, ciudad, direccion,
-                            categoria, precio1, precio2, precio3, precio4,
+                    alojamiento = UsuarioFactory.crearHotel(0, nombreUsuario, clave, nombre,
+                            ciudad, direccion, categoria, precio1, precio2, precio3, precio4,
                             habitaciones1, habitaciones2, habitaciones3, habitaciones4);
                     break;
                 case "ESPACIO_ORG":
@@ -335,7 +335,8 @@ public class PanelRegistroAlojamiento extends JPanel {
                     if (organizador.isEmpty()) {
                         throw new IllegalArgumentException("El organizador es obligatorio.");
                     }
-                    alojamiento = new EspacioOrg(0, nombreUsuario, clave, nombre, ciudad, direccion, capacidad, organizador);
+                    alojamiento = UsuarioFactory.crearEspacioOrg(0, nombreUsuario, clave,
+                            nombre, ciudad, direccion, capacidad, organizador);
                     break;
                 default:
                     throw new IllegalArgumentException("Tipo de alojamiento invalido.");
