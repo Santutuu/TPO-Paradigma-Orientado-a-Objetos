@@ -26,6 +26,12 @@ public class Main {
         PersistenciaJSON persistencia = new PersistenciaJSON();
 
         try {
+            List<String> faltantes = persistencia.archivosBaseFaltantes();
+            if (!faltantes.isEmpty()) {
+                mostrarAvisoArchivosFaltantes(persistencia, faltantes);
+                System.exit(1);
+            }
+
             List<Usuario> usuarios = persistencia.cargarCuentas();
             List<Evento> eventos = persistencia.cargarEventos();
             List<Reserva> reservas = persistencia.cargarReservas();
@@ -50,5 +56,22 @@ public class Main {
                     "Error de carga", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
+    }
+
+    /** Avisa que archivos base faltan y donde deberian estar. */
+    private static void mostrarAvisoArchivosFaltantes(PersistenciaJSON persistencia,
+                                                      List<String> faltantes) {
+        StringBuilder mensaje = new StringBuilder();
+        mensaje.append("Faltan archivos de datos obligatorios en:\n");
+        mensaje.append(persistencia.carpetaDatos()).append("\n\n");
+        for (String nombre : faltantes) {
+            mensaje.append("  - ").append(nombre).append("\n");
+        }
+        mensaje.append("\nRestaura los archivos desde la carpeta datos/ del proyecto\n");
+        mensaje.append("y ejecuta la aplicacion desde la raiz.\n\n");
+        mensaje.append("notificaciones.json es opcional: se crea automaticamente.");
+
+        JOptionPane.showMessageDialog(null, mensaje.toString(),
+                "Faltan archivos de datos", JOptionPane.ERROR_MESSAGE);
     }
 }

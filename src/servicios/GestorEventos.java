@@ -65,9 +65,9 @@ public class GestorEventos {
      * Registra un evento nuevo con un id autogenerado y guarda en disco.
      */
     public Evento registrar(LocalDate fecha, LocalTime horario, LocalTime horarioFin,
-                            String actividad, Ciudad ciudad) {
+                            String actividad, Ciudad ciudad, String direccion) {
         // Creo el evento con el id autogenerado y lo guardo en el archivo.
-        Evento evento = new Evento(proximoId(), fecha, horario, horarioFin, actividad, ciudad);
+        Evento evento = new Evento(proximoId(), fecha, horario, horarioFin, actividad, ciudad, direccion);
         eventos.add(evento);
         guardarEventos();
         notificarEventoCreado(evento);
@@ -80,15 +80,19 @@ public class GestorEventos {
      * sus asistentes.
      */
     public void modificarEvento(int id, LocalDate fecha, LocalTime horario,
-                                LocalTime horarioFin, String actividad, Ciudad ciudad) {
+                                LocalTime horarioFin, String actividad, Ciudad ciudad,
+                                String direccion) {
         Evento evento = buscarPorId(id);
         if (evento == null) {
             throw new IllegalArgumentException("No existe un evento con id " + id + ".");
         }
+        if (!evento.estaActiva()) {
+            throw new IllegalArgumentException("No se puede modificar un evento cancelado.");
+        }
 
         // Armo el evento con los datos nuevos y reviso que no choque con otro
         // evento de algun asistente ya inscripto.
-        Evento propuesto = new Evento(id, fecha, horario, horarioFin, actividad, ciudad);
+        Evento propuesto = new Evento(id, fecha, horario, horarioFin, actividad, ciudad, direccion);
         for (Usuario u : gestorUsuarios.getUsuarios()) {
             if (u instanceof Asistente && ((Asistente) u).estaInscrito(id)) {
                 Asistente asistente = (Asistente) u;
@@ -108,11 +112,29 @@ public class GestorEventos {
         evento.setHorarioFin(horarioFin);
         evento.setActividad(actividad);
         evento.setCiudad(ciudad);
+        evento.setDireccion(direccion);
         guardarEventos();
         // Las cuentas guardan los ids de los eventos, pero se reescriben por si
         // el evento cambio y para mantener ambos archivos consistentes.
         guardarCuentas();
         notificarEventoModificado(evento);
+    }
+
+    /**
+     * Cancela un evento activo. No se borra: queda como historial y los
+     * asistentes conservan su inscripcion para poder consultarla.
+     */
+    public void cancelarEvento(int id) {
+        Evento evento = buscarPorId(id);
+        if (evento == null) {
+            throw new IllegalArgumentException("No existe un evento con id " + id + ".");
+        }
+        if (!evento.estaActiva()) {
+            throw new IllegalArgumentException("El evento ya esta cancelado.");
+        }
+        evento.cancelar();
+        guardarEventos();
+        notificarEventoCancelado(evento);
     }
 
     public List<Evento> listarTodosOrdenados() {
@@ -144,6 +166,9 @@ public class GestorEventos {
         Evento evento = buscarPorId(idEvento);
         if (evento == null) {
             throw new IllegalArgumentException("No existe un evento con id " + idEvento + ".");
+        }
+        if (!evento.estaActiva()) {
+            throw new IllegalArgumentException("El evento esta cancelado.");
         }
         if (asistente.estaInscrito(idEvento)) {
             throw new IllegalArgumentException("Ya estas inscrito en ese evento.");
@@ -179,7 +204,8 @@ public class GestorEventos {
         // Recorro los ids de los eventos del asistente y comparo horarios.
         for (int idInscripto : asistente.getEventos()) {
             Evento inscripto = buscarPorId(idInscripto);
-            if (inscripto != null && inscripto != excluido && inscripto.seSuperpone(candidato)) {
+            if (inscripto != null && inscripto != excluido && inscripto.estaActiva()
+                    && inscripto.seSuperpone(candidato)) {
                 return inscripto;
             }
         }
@@ -213,6 +239,17 @@ public class GestorEventos {
                 observador.eventoModificado(evento);
             } catch (RuntimeException ex) {
                 System.err.println("Un observador fallo al notificar un evento modificado: "
+                        + ex.getMessage());
+            }
+        }
+    }
+
+    private void notificarEventoCancelado(Evento evento) {
+        for (EventoObserver observador : new ArrayList<>(observadores)) {
+            try {
+                observador.eventoCancelado(evento);
+            } catch (RuntimeException ex) {
+                System.err.println("Un observador fallo al notificar un evento cancelado: "
                         + ex.getMessage());
             }
         }

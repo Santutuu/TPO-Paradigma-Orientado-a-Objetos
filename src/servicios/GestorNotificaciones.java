@@ -127,7 +127,8 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
     public void eventoCreado(Evento evento) {
         String mensaje = "Nuevo evento: " + evento.getActividad()
                 + " el " + evento.getFecha() + " de " + evento.getHorario()
-                + " a " + evento.getHorarioFin() + " en " + evento.getCiudad() + ".";
+                + " a " + evento.getHorarioFin() + " en " + evento.getCiudad()
+                + " (" + evento.getDireccion() + ").";
 
         List<Notificacion> nuevas = new ArrayList<>();
         // El alta de un evento se avisa a todas las cuentas registradas.
@@ -141,10 +142,29 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
     public void eventoModificado(Evento evento) {
         String mensaje = "Evento modificado: " + evento.getActividad()
                 + " ahora es el " + evento.getFecha() + " de " + evento.getHorario()
-                + " a " + evento.getHorarioFin() + " en " + evento.getCiudad() + ".";
+                + " a " + evento.getHorarioFin() + " en " + evento.getCiudad()
+                + " (" + evento.getDireccion() + ").";
 
         List<Notificacion> nuevas = new ArrayList<>();
         // La modificacion solo se avisa a los asistentes inscriptos en el evento.
+        for (Usuario usuario : gestorUsuarios.getUsuarios()) {
+            if (usuario instanceof Asistente
+                    && ((Asistente) usuario).estaInscrito(evento.getId())) {
+                nuevas.add(crearNotificacion(usuario.getId(), Notificacion.TIPO_EVENTO, mensaje));
+            }
+        }
+        agregarVarias(nuevas);
+    }
+
+    @Override
+    public void eventoCancelado(Evento evento) {
+        String mensaje = "Evento cancelado: " + evento.getActividad()
+                + " del " + evento.getFecha() + " de " + evento.getHorario()
+                + " a " + evento.getHorarioFin() + " en " + evento.getCiudad()
+                + " (" + evento.getDireccion() + ").";
+
+        List<Notificacion> nuevas = new ArrayList<>();
+        // La cancelacion se avisa solo a los asistentes inscriptos en el evento.
         for (Usuario usuario : gestorUsuarios.getUsuarios()) {
             if (usuario instanceof Asistente
                     && ((Asistente) usuario).estaInscrito(evento.getId())) {

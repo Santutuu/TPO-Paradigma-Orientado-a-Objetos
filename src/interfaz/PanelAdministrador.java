@@ -31,6 +31,7 @@ public class PanelAdministrador extends JPanel {
 
         botones.add(botonCentrado("Registrar evento", e -> registrarEvento()));
         botones.add(botonCentrado("Modificar evento", e -> modificarEvento()));
+        botones.add(botonCentrado("Cancelar evento", e -> cancelarEvento()));
         botones.add(botonCentrado("Consultar eventos", e -> ventana.mostrarAgenda()));
 
         add(botones, BorderLayout.CENTER);
@@ -46,13 +47,15 @@ public class PanelAdministrador extends JPanel {
         JTextField campoHorarioFin = new JTextField("12:00", 12);
         JTextField campoActividad = new JTextField("", 20);
         JComboBox<Ciudad> comboCiudad = new JComboBox<>(Ciudad.values());
+        JTextField campoDireccion = new JTextField("", 20);
 
         JPanel form = UtilidadesInterfaz.formulario(
                 UtilidadesInterfaz.fila("Fecha (AAAA-MM-DD):", campoFecha),
                 UtilidadesInterfaz.fila("Inicio (HH:mm):", campoHorario),
                 UtilidadesInterfaz.fila("Fin (HH:mm):", campoHorarioFin),
                 UtilidadesInterfaz.fila("Actividad:", campoActividad),
-                UtilidadesInterfaz.fila("Ciudad:", comboCiudad)
+                UtilidadesInterfaz.fila("Ciudad:", comboCiudad),
+                UtilidadesInterfaz.fila("Direccion:", campoDireccion)
         );
 
         JPanel panel = new JPanel(new BorderLayout());
@@ -85,7 +88,8 @@ public class PanelAdministrador extends JPanel {
                     UtilidadesInterfaz.leerHora(campoHorario.getText()),
                     UtilidadesInterfaz.leerHora(campoHorarioFin.getText()),
                     campoActividad.getText(),
-                    (Ciudad) comboCiudad.getSelectedItem());
+                    (Ciudad) comboCiudad.getSelectedItem(),
+                    campoDireccion.getText());
             UtilidadesInterfaz.mostrarInfo(this, "Evento registrado correctamente.");
         } catch (Exception ex) {
             UtilidadesInterfaz.mostrarError(this, ex.getMessage());
@@ -93,10 +97,109 @@ public class PanelAdministrador extends JPanel {
     }
 
     private void modificarEvento() {
+        Evento eventoSeleccionado = elegirEvento("Modificar evento",
+                "Selecciona el evento a modificar",
+                "Usa los filtros para encontrar el evento antes de editarlo.");
+        if (eventoSeleccionado == null) {
+            return;
+        }
+        if (!eventoSeleccionado.estaActiva()) {
+            UtilidadesInterfaz.mostrarError(this, "No se puede modificar un evento cancelado.");
+            return;
+        }
+
+        JTextField campoFecha = new JTextField(eventoSeleccionado.getFecha().toString(), 12);
+        JTextField campoHorario = new JTextField(eventoSeleccionado.getHorario().toString(), 12);
+        JTextField campoHorarioFin = new JTextField(eventoSeleccionado.getHorarioFin().toString(), 12);
+        JTextField campoActividad = new JTextField(eventoSeleccionado.getActividad(), 20);
+        JComboBox<Ciudad> comboCiudadEdicion = new JComboBox<>(Ciudad.values());
+        comboCiudadEdicion.setSelectedItem(eventoSeleccionado.getCiudad());
+        JTextField campoDireccionEdicion = new JTextField(eventoSeleccionado.getDireccion(), 20);
+
+        JPanel form = UtilidadesInterfaz.formulario(
+                UtilidadesInterfaz.fila("Fecha (AAAA-MM-DD):", campoFecha),
+                UtilidadesInterfaz.fila("Inicio (HH:mm):", campoHorario),
+                UtilidadesInterfaz.fila("Fin (HH:mm):", campoHorarioFin),
+                UtilidadesInterfaz.fila("Actividad:", campoActividad),
+                UtilidadesInterfaz.fila("Ciudad:", comboCiudadEdicion),
+                UtilidadesInterfaz.fila("Direccion:", campoDireccionEdicion)
+        );
+
+        JPanel panelEdicion = new JPanel(new BorderLayout());
+        panelEdicion.setBackground(FONDO);
+        panelEdicion.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+        JLabel cabecera = new JLabel("Evento #" + eventoSeleccionado.getId());
+        cabecera.setFont(cabecera.getFont().deriveFont(Font.BOLD, 15f));
+        cabecera.setForeground(AZUL_OSCURO);
+        cabecera.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+
+        panelEdicion.add(cabecera, BorderLayout.NORTH);
+        panelEdicion.add(form, BorderLayout.CENTER);
+
+        int confirmar = JOptionPane.showConfirmDialog(
+                this,
+                panelEdicion,
+                "Editar evento",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (confirmar != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        try {
+            ventana.getGestorEventos().modificarEvento(
+                    eventoSeleccionado.getId(),
+                    UtilidadesInterfaz.leerFecha(campoFecha.getText()),
+                    UtilidadesInterfaz.leerHora(campoHorario.getText()),
+                    UtilidadesInterfaz.leerHora(campoHorarioFin.getText()),
+                    campoActividad.getText(),
+                    (Ciudad) comboCiudadEdicion.getSelectedItem(),
+                    campoDireccionEdicion.getText()
+            );
+            UtilidadesInterfaz.mostrarInfo(this, "Evento modificado correctamente.");
+        } catch (Exception ex) {
+            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+        }
+    }
+
+    private void cancelarEvento() {
+        Evento eventoSeleccionado = elegirEvento("Cancelar evento",
+                "Selecciona el evento a cancelar",
+                "Solo se pueden cancelar eventos activos. Los inscriptos recibiran un aviso.");
+        if (eventoSeleccionado == null) {
+            return;
+        }
+        if (!eventoSeleccionado.estaActiva()) {
+            UtilidadesInterfaz.mostrarError(this, "El evento ya esta cancelado.");
+            return;
+        }
+        boolean confirmar = UtilidadesInterfaz.confirmar(this,
+                "Cancelar el evento \"" + eventoSeleccionado.getActividad() + "\" del "
+                        + eventoSeleccionado.getFecha() + "?\n\n"
+                        + "Los asistentes inscriptos recibiran una notificacion.");
+        if (!confirmar) {
+            return;
+        }
+        try {
+            ventana.getGestorEventos().cancelarEvento(eventoSeleccionado.getId());
+            UtilidadesInterfaz.mostrarInfo(this, "Evento cancelado correctamente.");
+        } catch (Exception ex) {
+            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+        }
+    }
+
+    /**
+     * Muestra la tabla de eventos con filtros y devuelve el seleccionado, o
+     * null si el usuario cancela el dialogo o no elige una fila.
+     */
+    private Evento elegirEvento(String tituloDialogo, String tituloTabla, String ayudaTexto) {
         List<Evento> todosLosEventos = ventana.getGestorEventos().listarTodosOrdenados();
         if (todosLosEventos.isEmpty()) {
-            UtilidadesInterfaz.mostrarError(this, "Todavia no hay eventos para modificar.");
-            return;
+            UtilidadesInterfaz.mostrarError(this, "Todavia no hay eventos.");
+            return null;
         }
 
         JComboBox<LocalDate> comboFecha = new JComboBox<>();
@@ -116,7 +219,8 @@ public class PanelAdministrador extends JPanel {
         }
 
         DefaultTableModel modelo = new DefaultTableModel(
-                new Object[]{"ID", "Fecha", "Inicio", "Fin", "Actividad", "Ciudad"}, 0) {
+                new Object[]{"ID", "Fecha", "Inicio", "Fin", "Actividad", "Ciudad",
+                        "Direccion", "Estado"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -176,19 +280,19 @@ public class PanelAdministrador extends JPanel {
         panelFiltros.add(botonFiltrar);
 
         JScrollPane scroll = new JScrollPane(tabla);
-        scroll.setPreferredSize(new Dimension(760, 260));
+        scroll.setPreferredSize(new Dimension(980, 260));
         scroll.setBorder(BorderFactory.createLineBorder(BORDE));
 
         JPanel panelPadre = new JPanel(new BorderLayout());
         panelPadre.setBackground(FONDO);
         panelPadre.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-        JLabel titulo = new JLabel("Selecciona el evento a modificar");
+        JLabel titulo = new JLabel(tituloTabla);
         titulo.setFont(titulo.getFont().deriveFont(Font.BOLD, 15f));
         titulo.setForeground(TEXTO);
         titulo.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
 
-        JLabel ayuda = new JLabel("Usa los filtros para encontrar el evento antes de editarlo.");
+        JLabel ayuda = new JLabel(ayudaTexto);
         ayuda.setFont(ayuda.getFont().deriveFont(Font.PLAIN, 12f));
         ayuda.setForeground(new Color(99, 116, 133));
         ayuda.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
@@ -205,75 +309,22 @@ public class PanelAdministrador extends JPanel {
         int opcion = JOptionPane.showConfirmDialog(
                 this,
                 contenedor,
-                "Modificar evento",
+                tituloDialogo,
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE
         );
 
         if (opcion != JOptionPane.OK_OPTION) {
-            return;
+            return null;
         }
 
         int filaSeleccionada = tabla.getSelectedRow();
         if (filaSeleccionada < 0) {
             UtilidadesInterfaz.mostrarError(this, "Debes seleccionar un evento de la tabla.");
-            return;
+            return null;
         }
 
-        Evento eventoSeleccionado = eventosFiltrados.get(filaSeleccionada);
-
-        JTextField campoFecha = new JTextField(eventoSeleccionado.getFecha().toString(), 12);
-        JTextField campoHorario = new JTextField(eventoSeleccionado.getHorario().toString(), 12);
-        JTextField campoHorarioFin = new JTextField(eventoSeleccionado.getHorarioFin().toString(), 12);
-        JTextField campoActividad = new JTextField(eventoSeleccionado.getActividad(), 20);
-        JComboBox<Ciudad> comboCiudadEdicion = new JComboBox<>(Ciudad.values());
-        comboCiudadEdicion.setSelectedItem(eventoSeleccionado.getCiudad());
-
-        JPanel form = UtilidadesInterfaz.formulario(
-                UtilidadesInterfaz.fila("Fecha (AAAA-MM-DD):", campoFecha),
-                UtilidadesInterfaz.fila("Inicio (HH:mm):", campoHorario),
-                UtilidadesInterfaz.fila("Fin (HH:mm):", campoHorarioFin),
-                UtilidadesInterfaz.fila("Actividad:", campoActividad),
-                UtilidadesInterfaz.fila("Ciudad:", comboCiudadEdicion)
-        );
-
-        JPanel panelEdicion = new JPanel(new BorderLayout());
-        panelEdicion.setBackground(FONDO);
-        panelEdicion.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-
-        JLabel cabecera = new JLabel("Evento #" + eventoSeleccionado.getId());
-        cabecera.setFont(cabecera.getFont().deriveFont(Font.BOLD, 15f));
-        cabecera.setForeground(AZUL_OSCURO);
-        cabecera.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-
-        panelEdicion.add(cabecera, BorderLayout.NORTH);
-        panelEdicion.add(form, BorderLayout.CENTER);
-
-        int confirmar = JOptionPane.showConfirmDialog(
-                this,
-                panelEdicion,
-                "Editar evento",
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (confirmar != JOptionPane.OK_OPTION) {
-            return;
-        }
-
-        try {
-            ventana.getGestorEventos().modificarEvento(
-                    eventoSeleccionado.getId(),
-                    UtilidadesInterfaz.leerFecha(campoFecha.getText()),
-                    UtilidadesInterfaz.leerHora(campoHorario.getText()),
-                    UtilidadesInterfaz.leerHora(campoHorarioFin.getText()),
-                    campoActividad.getText(),
-                    (Ciudad) comboCiudadEdicion.getSelectedItem()
-            );
-            UtilidadesInterfaz.mostrarInfo(this, "Evento modificado correctamente.");
-        } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
-        }
+        return eventosFiltrados.get(filaSeleccionada);
     }
 
     private void cargarEventosEnTabla(DefaultTableModel modelo, List<Evento> eventos) {
@@ -285,7 +336,9 @@ public class PanelAdministrador extends JPanel {
                     evento.getHorario(),
                     evento.getHorarioFin(),
                     evento.getActividad(),
-                    evento.getCiudad()
+                    evento.getCiudad(),
+                    evento.getDireccion(),
+                    evento.getEstado()
             });
         }
     }

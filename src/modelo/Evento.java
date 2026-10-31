@@ -6,27 +6,38 @@ import java.time.LocalTime;
 /**
  * Evento de la agenda de la visita del Papa. Ademas del horario de inicio
  * (horario) guarda un horario de fin estimado (horarioFin), necesario para
- * detectar superposiciones entre eventos.
+ * detectar superposiciones entre eventos. El estado permite cancelarlo sin
+ * borrar sus datos, para conservar el historial.
  */
 public class Evento {
 
-    // Datos del evento y horario de fin estimado (esto ultimo no esta en el UML).
+    // Datos del evento; horarioFin, direccion y estado son extensiones al UML.
     private int id;
     private LocalDate fecha;
     private LocalTime horario;
     private LocalTime horarioFin;
     private String actividad;
     private Ciudad ciudad;
+    private String direccion;
+    private EstadoEvento estado;
 
     // Armo el evento y dejo que los setters validen los datos.
     public Evento(int id, LocalDate fecha, LocalTime horario, LocalTime horarioFin,
-                  String actividad, Ciudad ciudad) {
+                  String actividad, Ciudad ciudad, String direccion, EstadoEvento estado) {
         this.id = id;
         setFecha(fecha);
         setHorario(horario);
         setHorarioFin(horarioFin);
         setActividad(actividad);
         setCiudad(ciudad);
+        setDireccion(direccion);
+        setEstado(estado);
+    }
+
+    /** Constructor compatible: crea el evento en estado ACTIVA. */
+    public Evento(int id, LocalDate fecha, LocalTime horario, LocalTime horarioFin,
+                  String actividad, Ciudad ciudad, String direccion) {
+        this(id, fecha, horario, horarioFin, actividad, ciudad, direccion, EstadoEvento.ACTIVA);
     }
 
     public int getId() {
@@ -99,6 +110,38 @@ public class Evento {
             throw new IllegalArgumentException("La ciudad es obligatoria.");
         }
         this.ciudad = ciudad;
+    }
+
+    /** Direccion donde se realiza el evento. */
+    public String getDireccion() {
+        return direccion;
+    }
+
+    public void setDireccion(String direccion) {
+        if (direccion == null || direccion.trim().isEmpty()) {
+            throw new IllegalArgumentException("La direccion del evento es obligatoria.");
+        }
+        this.direccion = direccion.trim();
+    }
+
+    public EstadoEvento getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoEvento estado) {
+        if (estado == null) {
+            throw new IllegalArgumentException("El estado del evento es obligatorio.");
+        }
+        this.estado = estado;
+    }
+
+    /** Cancela el evento conservando sus datos como historial. */
+    public void cancelar() {
+        this.estado = EstadoEvento.CANCELADA;
+    }
+
+    public boolean estaActiva() {
+        return this.estado == EstadoEvento.ACTIVA;
     }
 
     /**

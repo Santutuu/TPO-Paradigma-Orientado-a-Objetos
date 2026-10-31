@@ -231,12 +231,14 @@ public class PanelAgenda extends JPanel {
 
     private void mostrarTabla() {
         // Convierte la lista actual en filas para el modelo de la tabla.
-        String[] columnas = {"Id", "Fecha", "Inicio", "Fin", "Actividad", "Ciudad"};
-        Object[][] filas = new Object[eventosMostrados.size()][6];
+        String[] columnas = {"Id", "Fecha", "Inicio", "Fin", "Actividad", "Ciudad",
+                "Direccion", "Estado"};
+        Object[][] filas = new Object[eventosMostrados.size()][8];
         for (int i = 0; i < eventosMostrados.size(); i++) {
             Evento e = eventosMostrados.get(i);
             filas[i] = new Object[]{e.getId(), e.getFecha(), e.getHorario(),
-                    e.getHorarioFin(), e.getActividad(), e.getCiudad()};
+                    e.getHorarioFin(), e.getActividad(), e.getCiudad(), e.getDireccion(),
+                    e.getEstado()};
         }
         tabla.setModel(UtilidadesInterfaz.modeloTabla(columnas, filas));
     }
@@ -255,6 +257,10 @@ public class PanelAgenda extends JPanel {
         // Solicita la inscripción del asistente al evento elegido e informa errores.
         Evento evento = eventoSeleccionado();
         if (evento == null) {
+            return;
+        }
+        if (!evento.estaActiva()) {
+            UtilidadesInterfaz.mostrarError(this, "El evento esta cancelado.");
             return;
         }
         try {

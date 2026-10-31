@@ -4,8 +4,8 @@ import modelo.Evento;
 
 /**
  * Observador de cambios en la agenda. Permite que las notificaciones y otras
- * acciones reaccionen al alta o a la modificacion de un evento sin acoplar al
- * gestor con la interfaz.
+ * acciones reaccionen al alta, la modificacion o la cancelacion de un evento
+ * sin acoplar al gestor con la interfaz.
  */
 public interface EventoObserver {
 
@@ -14,6 +14,10 @@ public interface EventoObserver {
     }
 
     default void eventoModificado(Evento evento) {
+        // Por defecto no hace nada.
+    }
+
+    default void eventoCancelado(Evento evento) {
         // Por defecto no hace nada.
     }
 }

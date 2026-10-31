@@ -26,6 +26,10 @@ import java.util.Map;
  */
 public class PersistenciaJSON {
 
+    /** Archivos que la aplicacion necesita para arrancar. */
+    private static final String[] ARCHIVOS_BASE =
+            {"cuentas.json", "eventos.json", "reservas.json"};
+
     /** Carpeta donde se guardan los archivos de datos. Relativa a la raiz del proyecto. */
     private final String directorio;
 
@@ -37,6 +41,26 @@ public class PersistenciaJSON {
     /** Constructor que permite indicar otra carpeta de datos (util en pruebas). */
     public PersistenciaJSON(String directorio) {
         this.directorio = directorio;
+    }
+
+    /**
+     * Devuelve los archivos base que no existen en la carpeta de datos. Un
+     * archivo existente pero vacio no cuenta como faltante: se carga como una
+     * lista vacia.
+     */
+    public List<String> archivosBaseFaltantes() {
+        List<String> faltantes = new ArrayList<>();
+        for (String nombre : ARCHIVOS_BASE) {
+            if (!Files.exists(Paths.get(directorio, nombre))) {
+                faltantes.add(nombre);
+            }
+        }
+        return faltantes;
+    }
+
+    /** Devuelve la carpeta de datos como ruta absoluta, para los mensajes de error. */
+    public Path carpetaDatos() {
+        return Paths.get(directorio).toAbsolutePath();
     }
 
     // ------------------------------------------------------------------ //
@@ -308,12 +332,29 @@ public class PersistenciaJSON {
     private Evento construirEvento(Map<String, Object> m) throws IOException {
         int id = numero(m.get("id")).intValue();
         LocalTime horario = LocalTime.parse((String) m.get("horario"));
+        // Compatibilidad: los eventos guardados antes de la direccion no la traen.
+        String direccion = (String) m.get("direccion");
+        if (direccion == null || direccion.trim().isEmpty()) {
+            direccion = "A confirmar";
+        }
+        // Compatibilidad: los eventos viejos tampoco traen estado y se asumen activos.
+        EstadoEvento estado = EstadoEvento.ACTIVA;
+        Object valorEstado = m.get("estado");
+        if (valorEstado != null) {
+            try {
+                estado = EstadoEvento.valueOf((String) valorEstado);
+            } catch (IllegalArgumentException e) {
+                throw new IOException("Estado de evento desconocido en eventos.json: " + valorEstado);
+            }
+        }
         return new Evento(id,
                 LocalDate.parse((String) m.get("fecha")),
                 horario,
                 horarioFin(m, horario),
                 (String) m.get("actividad"),
-                Ciudad.valueOf((String) m.get("ciudad")));
+                Ciudad.valueOf((String) m.get("ciudad")),
+                direccion,
+                estado);
     }
 
     private Reserva construirReserva(Map<String, Object> m) throws IOException {
@@ -427,7 +468,9 @@ public class PersistenciaJSON {
                 + ", \"horario\": " + jsonCadena(e.getHorario().toString())
                 + ", \"horarioFin\": " + jsonCadena(e.getHorarioFin().toString())
                 + ", \"actividad\": " + jsonCadena(e.getActividad())
-                + ", \"ciudad\": " + jsonCadena(e.getCiudad().name()) + " }";
+                + ", \"ciudad\": " + jsonCadena(e.getCiudad().name())
+                + ", \"direccion\": " + jsonCadena(e.getDireccion())
+                + ", \"estado\": " + jsonCadena(e.getEstado().name()) + " }";
     }
 
     private String notificacionJson(Notificacion n) {
@@ -493,7 +536,8 @@ public class PersistenciaJSON {
         }
         String contenido = Files.readString(archivo, StandardCharsets.UTF_8).trim();
         if (contenido.isEmpty()) {
-            throw new IOException("El archivo " + nombre + " esta vacio.");
+            // Un archivo vacio equivale a una lista vacia: la aplicacion puede arrancar.
+            return new ArrayList<>();
         }
         try {
             return new ParserJSON().parsear(contenido);
