@@ -4,11 +4,13 @@ import modelo.Alojamiento;
 import modelo.Ciudad;
 import modelo.Hotel;
 import modelo.Reserva;
+import modelo.Usuario;
 
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -63,6 +65,8 @@ public class PanelAlojamiento extends JPanel {
         }
         acciones.add(Box.createVerticalStrut(8));
         acciones.add(crearBotonMenu("Consultar huespedes en un periodo", e -> consultarHuespedes()));
+        acciones.add(Box.createVerticalStrut(8));
+        acciones.add(crearBotonMenu("Cancelar una reserva", e -> cancelarReserva()));
         contenido.add(acciones);
 
         JPanel centro = new JPanel(new GridBagLayout());
@@ -378,6 +382,61 @@ public class PanelAlojamiento extends JPanel {
         } catch (Exception ex) {
             UtilidadesInterfaz.mostrarError(this, ex.getMessage());
         }
+    }
+
+    private void cancelarReserva() {
+        // El alojamiento cancela una de las reservas activas que recibio.
+        Alojamiento alojamiento = (Alojamiento) ventana.getSesion();
+        List<Reserva> activas = ventana.getGestorReservas()
+                .reservasActivasDeAlojamiento(alojamiento.getId());
+        if (activas.isEmpty()) {
+            UtilidadesInterfaz.mostrarInfo(this, "No tenes reservas activas para cancelar.");
+            return;
+        }
+
+        String[] opciones = new String[activas.size()];
+        for (int i = 0; i < activas.size(); i++) {
+            opciones[i] = descripcionReserva(activas.get(i));
+        }
+        String elegida = (String) JOptionPane.showInputDialog(this,
+                "Selecciona la reserva que queres cancelar:",
+                "Cancelar reserva", JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+        if (elegida == null) {
+            return;
+        }
+        int indice = Arrays.asList(opciones).indexOf(elegida);
+        if (indice < 0) {
+            return;
+        }
+        Reserva reserva = activas.get(indice);
+
+        if (!UtilidadesInterfaz.confirmar(this,
+                "Seguro que queres cancelar la reserva #" + reserva.getId() + "?\n"
+                        + "Solo se puede cancelar hasta 24 horas antes del ingreso.")) {
+            return;
+        }
+
+        try {
+            ventana.getGestorReservas().cancelarReservaDeAlojamiento(
+                    alojamiento.getId(), reserva.getId());
+            UtilidadesInterfaz.mostrarInfo(this, "Reserva cancelada.");
+            ventana.mostrarMenuAlojamiento();
+        } catch (Exception ex) {
+            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+        }
+    }
+
+    // Arma la linea que se muestra en el selector de reservas a cancelar.
+    private String descripcionReserva(Reserva reserva) {
+        Usuario asistente = ventana.getGestorUsuarios().buscarPorId(reserva.getIdAsistente());
+        String nombre = asistente != null
+                ? asistente.getNombre() : "Asistente " + reserva.getIdAsistente();
+        String detalle = reserva.getTipoHabitacion() > 0
+                ? "habitacion para " + reserva.getTipoHabitacion() + " personas"
+                : "1 persona";
+        return "#" + reserva.getId() + " - " + nombre + " - "
+                + reserva.getIngreso() + " al " + reserva.getEgreso()
+                + " - " + detalle;
     }
 
     private JComboBox<LocalDate> crearSelectorFecha() {

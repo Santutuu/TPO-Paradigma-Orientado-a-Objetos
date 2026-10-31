@@ -33,19 +33,14 @@ public class PanelAsistente extends JPanel {
         acciones.setLayout(new BoxLayout(acciones, BoxLayout.Y_AXIS));
         acciones.setOpaque(false);
 
-        acciones.add(botonCentrado("Consultar agenda por fecha", e -> ventana.mostrarAgenda()));
-        acciones.add(Box.createVerticalStrut(8));
-        acciones.add(botonCentrado("Inscribirme a un evento", e -> ventana.mostrarAgenda()));
+        // Un acceso por pantalla: las acciones de cada flujo viven adentro del panel.
+        acciones.add(botonCentrado("Consultar agenda e inscribirme", e -> ventana.mostrarAgenda()));
         acciones.add(Box.createVerticalStrut(8));
         acciones.add(botonCentrado("Consultar mis inscripciones y desinscribirme", e -> ventana.mostrarMisInscripciones()));
         acciones.add(Box.createVerticalStrut(8));
         acciones.add(botonCentrado("Buscar alojamientos por ciudad", e -> ventana.mostrarBusquedaAlojamientos()));
         acciones.add(Box.createVerticalStrut(8));
-        acciones.add(botonCentrado("Reservar alojamiento", e -> ventana.mostrarReservas()));
-        acciones.add(Box.createVerticalStrut(8));
-        acciones.add(botonCentrado("Consultar mi reserva", e -> ventana.mostrarReservas()));
-        acciones.add(Box.createVerticalStrut(8));
-        acciones.add(botonCentrado("Cancelar mi reserva", e -> ventana.mostrarReservas()));
+        acciones.add(botonCentrado("Mis reservas: reservar, consultar o cancelar", e -> ventana.mostrarReservas()));
 
         JPanel contenido = new JPanel();
         contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));

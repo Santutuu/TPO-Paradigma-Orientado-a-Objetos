@@ -102,6 +102,23 @@ public class GestorReservas {
     }
 
     /**
+     * Devuelve todas las reservas de un asistente, activas y canceladas, con la
+     * fecha de ingreso mas reciente primero. Sirve para el historial de la
+     * pantalla de reservas.
+     */
+    public List<Reserva> reservasDeAsistente(int idAsistente) {
+        List<Reserva> resultado = new ArrayList<>();
+        for (Reserva r : reservas) {
+            if (r.getIdAsistente() == idAsistente) {
+                resultado.add(r);
+            }
+        }
+        resultado.sort(Comparator.comparing(Reserva::getIngreso).reversed()
+                .thenComparing(Comparator.comparing(Reserva::getId).reversed()));
+        return resultado;
+    }
+
+    /**
      * Crea una reserva para un alojamiento que no es hotel (parroquia o espacio
      * de organizacion). Cada reserva representa una persona.
      */
@@ -192,10 +209,42 @@ public class GestorReservas {
      * cancelarse.
      */
     public void cancelarReserva(int idReserva) {
+        cancelarValidando(buscarReservaOError(idReserva));
+    }
+
+    /**
+     * Cancela una reserva propia del asistente autenticado. Ademas del limite
+     * de 24 horas, valida que la reserva pertenezca a ese asistente.
+     */
+    public void cancelarReservaDeAsistente(int idSesion, int idReserva) {
+        Reserva reserva = buscarReservaOError(idReserva);
+        if (reserva.getIdAsistente() != idSesion) {
+            throw new IllegalArgumentException("Solo podes cancelar tus propias reservas.");
+        }
+        cancelarValidando(reserva);
+    }
+
+    /**
+     * Cancela una reserva recibida por el alojamiento autenticado. Ademas del
+     * limite de 24 horas, valida que la reserva sea de ese alojamiento.
+     */
+    public void cancelarReservaDeAlojamiento(int idSesion, int idReserva) {
+        Reserva reserva = buscarReservaOError(idReserva);
+        if (reserva.getIdAlojamiento() != idSesion) {
+            throw new IllegalArgumentException("Solo podes cancelar reservas de tu alojamiento.");
+        }
+        cancelarValidando(reserva);
+    }
+
+    private Reserva buscarReservaOError(int idReserva) {
         Reserva reserva = buscarPorId(idReserva);
         if (reserva == null) {
             throw new IllegalArgumentException("No existe una reserva con id " + idReserva + ".");
         }
+        return reserva;
+    }
+
+    private void cancelarValidando(Reserva reserva) {
         if (!reserva.estaActiva()) {
             throw new IllegalArgumentException("La reserva ya esta cancelada.");
         }
@@ -216,6 +265,21 @@ public class GestorReservas {
         List<Reserva> resultado = new ArrayList<>();
         for (Reserva r : reservas) {
             if (r.getIdAlojamiento() == idAlojamiento) {
+                resultado.add(r);
+            }
+        }
+        resultado.sort(Comparator.comparing(Reserva::getIngreso));
+        return resultado;
+    }
+
+    /**
+     * Reservas activas de un alojamiento, ordenadas por fecha de ingreso. Se
+     * usa en el menu del alojamiento para elegir cual cancelar.
+     */
+    public List<Reserva> reservasActivasDeAlojamiento(int idAlojamiento) {
+        List<Reserva> resultado = new ArrayList<>();
+        for (Reserva r : reservas) {
+            if (r.getIdAlojamiento() == idAlojamiento && r.estaActiva()) {
                 resultado.add(r);
             }
         }
