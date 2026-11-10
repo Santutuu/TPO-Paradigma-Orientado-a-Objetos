@@ -2,6 +2,8 @@ package persistencia;
 
 import modelo.*;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -11,43 +13,28 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-/**
- * Se encarga de cargar y guardar los archivos JSON de la aplicacion.
- * La escritura se realiza con StringBuilder y la lectura con el ParserJSON propio.
- *
- * El modelo usa identificadores numericos para relacionar cuentas, eventos y
- * reservas, tal como indica el UML.
- *
- * NOTA: las claves se guardan en texto plano exclusivamente por la limitacion
- * academica del TPO. Esto no es una practica segura para produccion.
- */
 public class PersistenciaJSON {
 
     /** Archivos que la aplicacion necesita para arrancar. */
     private static final String[] ARCHIVOS_BASE =
             {"cuentas.json", "eventos.json", "reservas.json"};
 
-    /** Carpeta donde se guardan los archivos de datos. Relativa a la raiz del proyecto. */
     private final String directorio;
 
-    // Por defecto uso la carpeta datos/; el otro constructor es para las pruebas.
     public PersistenciaJSON() {
         this.directorio = "datos";
     }
 
-    /** Constructor que permite indicar otra carpeta de datos (util en pruebas). */
     public PersistenciaJSON(String directorio) {
         this.directorio = directorio;
     }
 
-    /**
-     * Devuelve los archivos base que no existen en la carpeta de datos. Un
-     * archivo existente pero vacio no cuenta como faltante: se carga como una
-     * lista vacia.
-     */
     public List<String> archivosBaseFaltantes() {
         List<String> faltantes = new ArrayList<>();
         for (String nombre : ARCHIVOS_BASE) {
@@ -58,44 +45,41 @@ public class PersistenciaJSON {
         return faltantes;
     }
 
-    /** Devuelve la carpeta de datos como ruta absoluta, para los mensajes de error. */
     public Path carpetaDatos() {
         return Paths.get(directorio).toAbsolutePath();
     }
 
-    // ------------------------------------------------------------------ //
-    // CUENTAS                                                             //
-    // ------------------------------------------------------------------ //
-
-    public List<Usuario> cargarCuentas() throws IOException {
+    public Set<Usuario> cargarCuentas() throws IOException {
         Object raiz = parsearArchivo("cuentas.json");
         if (!(raiz instanceof List)) {
             throw new IOException("Formato invalido en cuentas.json: se esperaba un arreglo.");
         }
-        List<Usuario> cuentas = new ArrayList<>();
+        Set<Usuario> cuentas = new LinkedHashSet<>();
         for (Object elemento : (List<?>) raiz) {
-            cuentas.add(construirUsuario((Map<String, Object>) elemento));
+            Usuario usuario = construirUsuario((Map<String, Object>) elemento);
+            if (!cuentas.add(usuario)) {
+                throw new IOException("Nombre de usuario duplicado en cuentas.json: "
+                        + usuario.getNombreUsuario());
+            }
         }
         return cuentas;
     }
 
-    public void guardarCuentas(List<Usuario> cuentas) throws IOException {
+    public void guardarCuentas(Collection<Usuario> cuentas) throws IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("[\n");
-        for (int i = 0; i < cuentas.size(); i++) {
-            sb.append(usuarioJson(cuentas.get(i)));
+        int i = 0;
+        for (Usuario usuario : cuentas) {
+            sb.append(usuarioJson(usuario));
             if (i < cuentas.size() - 1) {
                 sb.append(",");
             }
             sb.append("\n");
+            i++;
         }
         sb.append("]\n");
         escribirArchivo("cuentas.json", sb.toString());
     }
-
-    // ------------------------------------------------------------------ //
-    // EVENTOS                                                             //
-    // ------------------------------------------------------------------ //
 
     public List<Evento> cargarEventos() throws IOException {
         Object raiz = parsearArchivo("eventos.json");
@@ -122,10 +106,6 @@ public class PersistenciaJSON {
         sb.append("]\n");
         escribirArchivo("eventos.json", sb.toString());
     }
-
-    // ------------------------------------------------------------------ //
-    // RESERVAS                                                            //
-    // ------------------------------------------------------------------ //
 
     public List<Reserva> cargarReservas() throws IOException {
         Object raiz = parsearArchivo("reservas.json");
@@ -163,10 +143,6 @@ public class PersistenciaJSON {
         escribirArchivo("reservas.json", sb.toString());
     }
 
-    // ------------------------------------------------------------------ //
-    // NOTIFICACIONES                                                      //
-    // ------------------------------------------------------------------ //
-
     /**
      * Carga las notificaciones. Si el archivo todavia no existe, devuelve una
      * lista vacia para no impedir el arranque de la aplicacion.
@@ -176,7 +152,7 @@ public class PersistenciaJSON {
         if (!Files.exists(archivo)) {
             return new ArrayList<>();
         }
-        if (Files.readString(archivo, StandardCharsets.UTF_8).trim().isEmpty()) {
+        if (leerArchivo(archivo).trim().isEmpty()) {
             return new ArrayList<>();
         }
         Object raiz = parsearArchivo("notificaciones.json");
@@ -203,10 +179,6 @@ public class PersistenciaJSON {
         sb.append("]\n");
         escribirArchivo("notificaciones.json", sb.toString());
     }
-
-    // ------------------------------------------------------------------ //
-    // CONSTRUCCION DE OBJETOS DESDE JSON                                  //
-    // ------------------------------------------------------------------ //
 
     private Usuario construirUsuario(Map<String, Object> m) throws IOException {
         String tipo = (String) m.get("tipo");
@@ -246,16 +218,8 @@ public class PersistenciaJSON {
         }
     }
 
-    /**
-     * Construye un hotel. Los archivos anteriores a la incorporacion de precio
-     * y habitaciones no traen esos campos: en ese caso se usa precio 0 y se
-     * interpreta la capacidad existente como esa cantidad de habitaciones
-     * simples, para no perder plazas.
-     */
-    @SuppressWarnings("unchecked")
     private Hotel construirHotel(int id, String nombreUsuario, String clave, String nombre,
                                  Map<String, Object> m) throws IOException {
-        // Primero leo la categoria y los precios de cada tipo de habitacion.
         int categoria = numero(m.get("categoria")).intValue();
         Object precios = m.get("preciosPorTipo");
         double precioSimple;
@@ -269,7 +233,6 @@ public class PersistenciaJSON {
             precioTriple = precioHabitacion(detalle, "3");
             precioCuadruple = precioHabitacion(detalle, "4");
         } else {
-            // Compatibilidad: archivos viejos con un unico precio por noche.
             Object precio = m.get("precioPorNoche");
             double unico = precio == null ? 0.0 : numero(precio).doubleValue();
             precioSimple = unico;
@@ -279,8 +242,6 @@ public class PersistenciaJSON {
         }
         Object habitaciones = m.get("habitaciones");
 
-        // Si el archivo ya tiene habitaciones, las uso. Si es viejo, tomo la
-        // capacidad como cantidad de habitaciones simples para no perder plazas.
         int simples;
         int dobles;
         int triples;
@@ -313,10 +274,6 @@ public class PersistenciaJSON {
         return valor == null ? 0.0 : numero(valor).doubleValue();
     }
 
-    /**
-     * Lee el tipo de documento. Los archivos anteriores a esta version no lo
-     * traen, por lo que se asume DNI para no romper la carga.
-     */
     private TipoDocumento tipoDocumento(Map<String, Object> m) throws IOException {
         Object valor = m.get("tipoDocumento");
         if (valor == null) {
@@ -332,12 +289,10 @@ public class PersistenciaJSON {
     private Evento construirEvento(Map<String, Object> m) throws IOException {
         int id = numero(m.get("id")).intValue();
         LocalTime horario = LocalTime.parse((String) m.get("horario"));
-        // Compatibilidad: los eventos guardados antes de la direccion no la traen.
         String direccion = (String) m.get("direccion");
         if (direccion == null || direccion.trim().isEmpty()) {
             direccion = "A confirmar";
         }
-        // Compatibilidad: los eventos viejos tampoco traen estado y se asumen activos.
         EstadoEvento estado = EstadoEvento.ACTIVA;
         Object valorEstado = m.get("estado");
         if (valorEstado != null) {
@@ -361,7 +316,6 @@ public class PersistenciaJSON {
         int id = numero(m.get("id")).intValue();
         int idAsistente = numero(m.get("idAsistente")).intValue();
         int idAlojamiento = numero(m.get("idAlojamiento")).intValue();
-        // Estos campos son nuevos: si no estan, uso los valores por defecto.
         int tipoHabitacion = m.get("tipoHabitacion") == null
                 ? 0 : numero(m.get("tipoHabitacion")).intValue();
         int cantidadPersonas = m.get("cantidadPersonas") == null
@@ -391,10 +345,6 @@ public class PersistenciaJSON {
         return valor == null ? horario.plusHours(1) : LocalTime.parse((String) valor);
     }
 
-    // ------------------------------------------------------------------ //
-    // ESCRITURA DEL JSON DE USUARIOS                                      //
-    // ------------------------------------------------------------------ //
-
     private String usuarioJson(Usuario u) {
         StringBuilder sb = new StringBuilder();
         sb.append("  { ");
@@ -410,12 +360,13 @@ public class PersistenciaJSON {
             sb.append(", \"dni\": ").append(jsonCadena(a.getDni()));
             sb.append(", \"origen\": ").append(jsonCadena(a.getOrigen()));
             sb.append(", \"eventos\": [");
-            List<Integer> eventos = a.getEventos();
-            for (int i = 0; i < eventos.size(); i++) {
+            int i = 0;
+            for (int idEvento : a.getEventos()) {
                 if (i > 0) {
                     sb.append(", ");
                 }
-                sb.append(eventos.get(i));
+                sb.append(idEvento);
+                i++;
             }
             sb.append("]");
         } else if (u instanceof Alojamiento) {
@@ -426,7 +377,6 @@ public class PersistenciaJSON {
             if (al instanceof Parroquia) {
                 sb.append(", \"responsable\": ").append(jsonCadena(((Parroquia) al).getResponsable()));
             } else if (al instanceof Hotel) {
-                // Para el hotel guardo categoria, precios por tipo y habitaciones.
                 Hotel hotel = (Hotel) al;
                 sb.append(", \"categoria\": ").append(hotel.getCategoria());
                 sb.append(", \"preciosPorTipo\": {");
@@ -461,7 +411,6 @@ public class PersistenciaJSON {
         return sb.toString();
     }
 
-    /** Serializa un evento con todos sus datos, incluido el fin estimado. */
     private String eventoJson(Evento e) {
         return "{ \"id\": " + e.getId()
                 + ", \"fecha\": " + jsonCadena(e.getFecha().toString())
@@ -483,27 +432,8 @@ public class PersistenciaJSON {
     }
 
     private String tipoUsuario(Usuario u) {
-        if (u instanceof Administrador) {
-            return "ADMINISTRADOR";
-        }
-        if (u instanceof Asistente) {
-            return "ASISTENTE";
-        }
-        if (u instanceof Parroquia) {
-            return "PARROQUIA";
-        }
-        if (u instanceof Hotel) {
-            return "HOTEL";
-        }
-        if (u instanceof EspacioOrg) {
-            return "ESPACIO_ORG";
-        }
-        throw new IllegalArgumentException("Tipo de usuario no soportado para guardar.");
+        return u.getTipoCuenta();
     }
-
-    // ------------------------------------------------------------------ //
-    // UTILIDADES DE ACCESO A CAMPOS Y ARCHIVOS                            //
-    // ------------------------------------------------------------------ //
 
     private Ciudad ciudad(Map<String, Object> m) {
         return Ciudad.valueOf((String) m.get("ciudad"));
@@ -534,9 +464,8 @@ public class PersistenciaJSON {
         if (!Files.exists(archivo)) {
             throw new IOException("No se encontro el archivo " + archivo.toAbsolutePath() + ".");
         }
-        String contenido = Files.readString(archivo, StandardCharsets.UTF_8).trim();
+        String contenido = leerArchivo(archivo).trim();
         if (contenido.isEmpty()) {
-            // Un archivo vacio equivale a una lista vacia: la aplicacion puede arrancar.
             return new ArrayList<>();
         }
         try {
@@ -546,17 +475,33 @@ public class PersistenciaJSON {
         }
     }
 
-    private void escribirArchivo(String nombre, String contenido) throws IOException {
+    /** Lee un archivo completo con BufferedReader en UTF-8. */
+    private String leerArchivo(Path archivo) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = Files.newBufferedReader(archivo, StandardCharsets.UTF_8)) {
+            String linea;
+            while ((linea = reader.readLine()) != null) {
+                if (sb.length() > 0) {
+                    sb.append('\n');
+                }
+                sb.append(linea);
+            }
+        }
+        return sb.toString();
+    }
+
+    /** Escribe un archivo completo con BufferedWriter en UTF-8. */
+    private synchronized void escribirArchivo(String nombre, String contenido) throws IOException {
         Path carpeta = Paths.get(directorio);
         if (!Files.exists(carpeta)) {
             Files.createDirectories(carpeta);
         }
-        Files.writeString(Paths.get(directorio, nombre), contenido, StandardCharsets.UTF_8);
+        Path archivo = Paths.get(directorio, nombre);
+        try (BufferedWriter writer = Files.newBufferedWriter(archivo, StandardCharsets.UTF_8)) {
+            writer.write(contenido);
+        }
     }
 
-    /**
-     * Escapa una cadena para poder incluirla dentro de un JSON.
-     */
     private String jsonCadena(String texto) {
         StringBuilder sb = new StringBuilder("\"");
         if (texto != null) {

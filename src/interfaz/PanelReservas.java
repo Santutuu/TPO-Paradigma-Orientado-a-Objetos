@@ -10,6 +10,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -23,14 +24,13 @@ public class PanelReservas extends JPanel {
     private final VentanaPrincipal ventana;
     private final JComboBox<Ciudad> comboCiudad;
     private final JComboBox<Alojamiento> comboAlojamiento;
-    // Estos dos campos solo se ven cuando el alojamiento elegido es un hotel.
     private final JComboBox<Integer> comboTipoHabitacion;
     private final JTextField campoPersonas;
     private final JPanel panelHabitacion;
     private final JTextField campoIngreso;
     private final JTextField campoEgreso;
     private final JLabel etiquetaDisponibilidad;
-    private final JLabel etiquetaReservaActual;
+    private final JTextArea areaReservasActivas;
     private final JTextArea areaHistorial;
     private static final Color AZUL_OSCURO = new Color(31, 55, 79);
     private static final Color FONDO = new Color(245, 247, 250);
@@ -43,30 +43,36 @@ public class PanelReservas extends JPanel {
         setBackground(FONDO);
         add(crearEncabezado(), BorderLayout.NORTH);
 
-        // El contenido queda en una columna y puede desplazarse si no entra en pantalla.
         JPanel contenido = new JPanel();
         contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));
         contenido.setBackground(FONDO);
         contenido.setBorder(BorderFactory.createEmptyBorder(18, 24, 18, 24));
 
-        // La primera sección informa la reserva vigente y permite cancelarla.
-        etiquetaReservaActual = new JLabel();
-        etiquetaReservaActual.setFont(etiquetaReservaActual.getFont().deriveFont(Font.PLAIN, 14f));
-        etiquetaReservaActual.setForeground(TEXTO);
-        etiquetaReservaActual.setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 14));
+        areaReservasActivas = new JTextArea(3, 40);
+        areaReservasActivas.setEditable(false);
+        areaReservasActivas.setLineWrap(true);
+        areaReservasActivas.setWrapStyleWord(true);
+        areaReservasActivas.setFont(areaReservasActivas.getFont().deriveFont(Font.PLAIN, 13f));
+        areaReservasActivas.setForeground(TEXTO);
+        areaReservasActivas.setBackground(Color.WHITE);
+        areaReservasActivas.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        JScrollPane scrollReservasActivas = new JScrollPane(areaReservasActivas);
+        scrollReservasActivas.setBorder(BorderFactory.createLineBorder(BORDE));
+        scrollReservasActivas.setAlignmentX(Component.LEFT_ALIGNMENT);
+        scrollReservasActivas.setPreferredSize(new Dimension(560, 110));
+        scrollReservasActivas.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
         JPanel tarjetaReserva = crearTarjeta();
-        tarjetaReserva.add(etiquetaReservaActual, BorderLayout.CENTER);
-        contenido.add(crearTituloSeccion("RESERVA ACTUAL"));
+        tarjetaReserva.add(scrollReservasActivas, BorderLayout.CENTER);
+        contenido.add(crearTituloSeccion("RESERVAS ACTIVAS"));
         contenido.add(Box.createVerticalStrut(8));
         contenido.add(tarjetaReserva);
         contenido.add(Box.createVerticalStrut(8));
-        JButton botonCancelar = crearBoton("Cancelar mi reserva", false, e -> cancelarReserva());
+        JButton botonCancelar = crearBoton("Cancelar una reserva", false, e -> cancelarReserva());
         JPanel accionesReserva = crearPanelAcciones();
         accionesReserva.add(botonCancelar);
         contenido.add(accionesReserva);
         contenido.add(Box.createVerticalStrut(12));
 
-        // Historial de reservas canceladas: solo lectura, para conservar la consulta.
         contenido.add(crearTituloSeccion("RESERVAS CANCELADAS"));
         contenido.add(Box.createVerticalStrut(8));
         areaHistorial = new JTextArea(4, 40);
@@ -85,7 +91,6 @@ public class PanelReservas extends JPanel {
         contenido.add(scrollHistorial);
         contenido.add(Box.createVerticalStrut(16));
 
-        // Los controles de búsqueda y fechas se agrupan en el formulario de reserva.
         comboCiudad = new JComboBox<>(Ciudad.values());
         comboAlojamiento = new JComboBox<>();
         comboTipoHabitacion = new JComboBox<>();
@@ -161,7 +166,6 @@ public class PanelReservas extends JPanel {
         desplazamiento.getViewport().setBackground(FONDO);
         add(desplazamiento, BorderLayout.CENTER);
 
-        // La navegación queda fija en el pie, separada del formulario.
         JButton botonVolver = crearBoton("Volver", false, e -> ventana.mostrarMenuAsistente());
         JPanel pie = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         pie.setBackground(new Color(235, 239, 244));
@@ -169,10 +173,9 @@ public class PanelReservas extends JPanel {
         pie.add(botonVolver);
         add(pie, BorderLayout.SOUTH);
 
-        actualizarReservaActual();
+        actualizarReservasActivas();
     }
 
-    // Encabezado azul que presenta el objetivo de la pantalla.
     private JPanel crearEncabezado() {
         JPanel encabezado = new JPanel();
         encabezado.setLayout(new BoxLayout(encabezado, BoxLayout.Y_AXIS));
@@ -192,7 +195,6 @@ public class PanelReservas extends JPanel {
         return encabezado;
     }
 
-    // Etiqueta visual para separar las partes principales de la pantalla.
     private JLabel crearTituloSeccion(String texto) {
         JLabel titulo = new JLabel(texto);
         titulo.setFont(titulo.getFont().deriveFont(Font.BOLD, 12f));
@@ -211,7 +213,6 @@ public class PanelReservas extends JPanel {
         return tarjeta;
     }
 
-    // Coloca cada etiqueta encima de su campo y aplica un estilo uniforme.
     private JPanel crearCampo(String etiqueta, JComponent campo) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -245,7 +246,6 @@ public class PanelReservas extends JPanel {
         return acciones;
     }
 
-    // Distingue la acción principal de las acciones secundarias.
     private JButton crearBoton(String texto, boolean principal, java.awt.event.ActionListener accion) {
         JButton boton = new JButton(texto);
         boton.addActionListener(accion);
@@ -262,21 +262,29 @@ public class PanelReservas extends JPanel {
     }
 
     private Asistente asistente() {
-        // La pantalla de reservas se abre para el asistente autenticado.
         return (Asistente) ventana.getSesion();
     }
 
-    private void actualizarReservaActual() {
-        // Muestra los datos de la reserva activa o indica que todavía no existe.
-        Reserva reserva = ventana.getGestorReservas().reservaActivaDe(asistente().getId());
-        if (reserva == null) {
-            etiquetaReservaActual.setText("No tenes ninguna reserva activa.");
+    private void actualizarReservasActivas() {
+        List<Reserva> activas = ventana.getGestorReservas()
+                .reservasActivasDeAsistente(asistente().getId());
+        if (activas.isEmpty()) {
+            areaReservasActivas.setText("No tenes ninguna reserva activa.");
         } else {
-            etiquetaReservaActual.setText("Reserva activa: " + nombreAlojamiento(reserva)
-                    + detalleHabitacion(reserva)
-                    + " del " + reserva.getIngreso() + " al " + reserva.getEgreso() + ".");
+            StringBuilder sb = new StringBuilder();
+            for (Reserva reserva : activas) {
+                sb.append(descripcionReserva(reserva)).append("\n");
+            }
+            areaReservasActivas.setText(sb.toString());
+            areaReservasActivas.setCaretPosition(0);
         }
         actualizarHistorial();
+    }
+
+    private String descripcionReserva(Reserva reserva) {
+        return "Reserva #" + reserva.getId() + ": " + nombreAlojamiento(reserva)
+                + detalleHabitacion(reserva) + " del " + reserva.getIngreso()
+                + " al " + reserva.getEgreso() + ".";
     }
 
     private String nombreAlojamiento(Reserva reserva) {
@@ -297,7 +305,6 @@ public class PanelReservas extends JPanel {
     }
 
     private void actualizarHistorial() {
-        // Lista las reservas canceladas del asistente; no se pueden reactivar.
         StringBuilder sb = new StringBuilder();
         for (Reserva reserva : ventana.getGestorReservas().reservasDeAsistente(asistente().getId())) {
             if (reserva.estaActiva()) {
@@ -314,7 +321,6 @@ public class PanelReservas extends JPanel {
     }
 
     private void actualizarAlojamientos() {
-        // Al cambiar de ciudad, renueva la lista de alojamientos disponibles.
         comboAlojamiento.removeAllItems();
         Ciudad ciudad = (Ciudad) comboCiudad.getSelectedItem();
         List<Alojamiento> alojamientos = ventana.getGestorUsuarios().listarAlojamientosPorCiudad(ciudad);
@@ -324,12 +330,9 @@ public class PanelReservas extends JPanel {
         actualizarHabitacion();
     }
 
-    // Si el alojamiento es hotel, muestro los tipos que tienen habitaciones.
-    // Si es parroquia o espacio, escondo esos campos.
     private void actualizarHabitacion() {
-        // El tipo de habitacion y la cantidad de personas solo aplican a hoteles.
         Alojamiento alojamiento = (Alojamiento) comboAlojamiento.getSelectedItem();
-        boolean esHotel = alojamiento instanceof Hotel;
+        boolean esHotel = alojamiento != null && alojamiento.esHotel();
         panelHabitacion.setVisible(esHotel);
         if (esHotel) {
             Hotel hotel = (Hotel) alojamiento;
@@ -367,7 +370,6 @@ public class PanelReservas extends JPanel {
 
     private void verDisponibilidad() {
         try {
-            // Valida el alojamiento y el periodo antes de consultar las plazas libres.
             Alojamiento alojamiento = (Alojamiento) comboAlojamiento.getSelectedItem();
             if (alojamiento == null) {
                 UtilidadesInterfaz.mostrarError(this, "No hay alojamientos en esa ciudad.");
@@ -378,9 +380,7 @@ public class PanelReservas extends JPanel {
             if (!egreso.isAfter(ingreso)) {
                 throw new IllegalArgumentException("El egreso debe ser posterior al ingreso.");
             }
-            if (alojamiento instanceof Hotel) {
-                // Para hoteles muestro habitaciones libres del tipo elegido,
-                // el precio por noche y el total de las noches.
+            if (alojamiento.esHotel()) {
                 Hotel hotel = (Hotel) alojamiento;
                 Integer tipo = (Integer) comboTipoHabitacion.getSelectedItem();
                 if (tipo == null) {
@@ -402,11 +402,10 @@ public class PanelReservas extends JPanel {
                         + disponibles + " de " + alojamiento.getCapacidad() + " plazas.");
             }
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
-    // Leo cuantas personas van y controlo que sea un entero positivo.
     private int leerCantidadPersonas() {
         String texto = campoPersonas.getText().trim();
         int personas;
@@ -423,7 +422,6 @@ public class PanelReservas extends JPanel {
 
     private void confirmarReserva() {
         try {
-            // Envía la solicitud al gestor, que aplica las reglas de negocio y guarda la reserva.
             Alojamiento alojamiento = (Alojamiento) comboAlojamiento.getSelectedItem();
             if (alojamiento == null) {
                 UtilidadesInterfaz.mostrarError(this, "No hay alojamientos en esa ciudad.");
@@ -432,8 +430,7 @@ public class PanelReservas extends JPanel {
             LocalDate ingreso = UtilidadesInterfaz.leerFecha(campoIngreso.getText());
             LocalDate egreso = UtilidadesInterfaz.leerFecha(campoEgreso.getText());
 
-            if (alojamiento instanceof Hotel) {
-                // Para un hotel mando tipo de habitacion y cantidad de personas.
+            if (alojamiento.esHotel()) {
                 Integer tipo = (Integer) comboTipoHabitacion.getSelectedItem();
                 if (tipo == null) {
                     throw new IllegalArgumentException("Elegi un tipo de habitacion.");
@@ -449,31 +446,50 @@ public class PanelReservas extends JPanel {
                         ingreso, egreso);
                 UtilidadesInterfaz.mostrarInfo(this, "Reserva confirmada en " + alojamiento.getNombre() + ".");
             }
-            actualizarReservaActual();
+            actualizarReservasActivas();
             etiquetaDisponibilidad.setText(" ");
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
     private void cancelarReserva() {
-        // Pide confirmación antes de cancelar la reserva activa del asistente.
-        Reserva reserva = ventana.getGestorReservas().reservaActivaDe(asistente().getId());
-        if (reserva == null) {
+        List<Reserva> activas = ventana.getGestorReservas()
+                .reservasActivasDeAsistente(asistente().getId());
+        if (activas.isEmpty()) {
             UtilidadesInterfaz.mostrarError(this, "No tenes ninguna reserva activa.");
             return;
         }
+        Reserva reserva = activas.get(0);
+        if (activas.size() > 1) {
+            String[] opciones = new String[activas.size()];
+            for (int i = 0; i < activas.size(); i++) {
+                opciones[i] = descripcionReserva(activas.get(i));
+            }
+            String elegida = (String) JOptionPane.showInputDialog(this,
+                    "Selecciona la reserva que queres cancelar:",
+                    "Cancelar reserva", JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+            if (elegida == null) {
+                return;
+            }
+            int indice = Arrays.asList(opciones).indexOf(elegida);
+            if (indice < 0) {
+                return;
+            }
+            reserva = activas.get(indice);
+        }
         if (!UtilidadesInterfaz.confirmar(this,
-                "Seguro que queres cancelar tu reserva? Solo se puede cancelar hasta 24 horas antes del ingreso.")) {
+                "Seguro que queres cancelar la reserva #" + reserva.getId()
+                        + "? Solo se puede cancelar hasta 24 horas antes del ingreso.")) {
             return;
         }
         try {
             ventana.getGestorReservas().cancelarReservaDeAsistente(asistente().getId(), reserva.getId());
             UtilidadesInterfaz.mostrarInfo(this, "Reserva cancelada.");
-            actualizarReservaActual();
+            actualizarReservasActivas();
             etiquetaDisponibilidad.setText(" ");
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 }

@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Muestra la agenda de eventos. Segun quien este autenticado permite solo
@@ -21,6 +22,8 @@ public class PanelAgenda extends JPanel {
     private final boolean modoMisInscripciones;
     private final JTable tabla;
     private JComboBox<LocalDate> comboFecha;
+    private JButton botonInscribir;
+    private JButton botonDesinscribir;
     private List<Evento> eventosMostrados;
     private static final Color AZUL_OSCURO = new Color(31, 55, 79);
     private static final Color FONDO = new Color(245, 247, 250);
@@ -39,7 +42,6 @@ public class PanelAgenda extends JPanel {
                 : "Explora los eventos y filtra la agenda por fecha.";
         add(crearEncabezado(titulo, descripcion), BorderLayout.NORTH);
 
-        // La tabla presenta los eventos disponibles o las inscripciones del asistente.
         tabla = new JTable();
         estilizarTabla();
         JScrollPane desplazamiento = UtilidadesInterfaz.tabla(tabla);
@@ -50,21 +52,18 @@ public class PanelAgenda extends JPanel {
         centro.add(desplazamiento, BorderLayout.CENTER);
         add(centro, BorderLayout.CENTER);
 
-        // El pie separa el filtro de fecha de las acciones sobre el evento seleccionado.
         JPanel pie = new JPanel();
         pie.setLayout(new BoxLayout(pie, BoxLayout.Y_AXIS));
         pie.setBackground(new Color(235, 239, 244));
         pie.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDE));
 
-        // Cambian los controles según se consulta toda la agenda o las inscripciones propias.
         if (modoMisInscripciones) {
-            JButton botonDesinscribir = crearBoton(
+            botonDesinscribir = crearBoton(
                     "Desinscribirme del evento seleccionado", true, e -> desinscribir());
             JPanel acciones = crearPanelAcciones();
             acciones.add(botonDesinscribir);
             pie.add(acciones);
         } else {
-            // Las fechas disponibles se presentan en forma legible para evitar errores de escritura.
             comboFecha = new JComboBox<>(new LocalDate[]{
                     LocalDate.of(2026, 11, 8),
                     LocalDate.of(2026, 11, 9),
@@ -96,8 +95,8 @@ public class PanelAgenda extends JPanel {
             filtro.add(botonVerTodos);
             pie.add(filtro);
 
-            if (ventana.getSesion() instanceof Asistente) {
-                JButton botonInscribir = crearBoton(
+            if (ventana.getSesion() != null && ventana.getSesion().esAsistente()) {
+                botonInscribir = crearBoton(
                         "Inscribirme al evento seleccionado", true, e -> inscribir());
                 JPanel acciones = crearPanelAcciones();
                 acciones.add(botonInscribir);
@@ -110,7 +109,6 @@ public class PanelAgenda extends JPanel {
         pie.add(accionesFinales);
         add(pie, BorderLayout.SOUTH);
 
-        // Carga inicialmente los datos adecuados para la vista seleccionada.
         if (modoMisInscripciones) {
             cargarInscripciones();
         } else {
@@ -118,7 +116,6 @@ public class PanelAgenda extends JPanel {
         }
     }
 
-    // Encabezado azul que identifica la vista actual y explica su contenido.
     private JPanel crearEncabezado(String tituloTexto, String descripcionTexto) {
         JPanel encabezado = new JPanel();
         encabezado.setLayout(new BoxLayout(encabezado, BoxLayout.Y_AXIS));
@@ -138,7 +135,6 @@ public class PanelAgenda extends JPanel {
         return encabezado;
     }
 
-    // Mantiene legibles las filas y hace destacar el encabezado y la selección.
     private void estilizarTabla() {
         tabla.setFont(tabla.getFont().deriveFont(Font.PLAIN, 14f));
         tabla.setRowHeight(30);
@@ -153,14 +149,12 @@ public class PanelAgenda extends JPanel {
     }
 
     private JPanel crearPanelAcciones() {
-        // Alinea las acciones a la derecha para separarlas visualmente del contenido.
         JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 8));
         acciones.setOpaque(false);
         return acciones;
     }
 
     private JButton crearBoton(String texto, boolean principal, java.awt.event.ActionListener accion) {
-        // Reutiliza un estilo común y permite destacar la acción más importante.
         JButton boton = new JButton(texto);
         boton.addActionListener(accion);
         boton.setFont(boton.getFont().deriveFont(Font.PLAIN, 13f));
@@ -176,7 +170,6 @@ public class PanelAgenda extends JPanel {
     }
 
     private void volver() {
-        // Regresa al menú del usuario actual o al inicio si la agenda es pública.
         if (ventana.getSesion() == null) {
             ventana.mostrarMenuPrincipal();
         } else {
@@ -194,14 +187,12 @@ public class PanelAgenda extends JPanel {
     }
 
     private void cargarTodos() {
-        // Pide al gestor todos los eventos ordenados y actualiza la tabla.
         eventosMostrados = ventana.getGestorEventos().listarTodosOrdenados();
         mostrarTabla();
     }
 
     private void cargarPorFecha() {
         try {
-            // Usa la fecha elegida para pedir al gestor los eventos de ese día.
             LocalDate fecha = (LocalDate) comboFecha.getSelectedItem();
             if (fecha == null) {
                 UtilidadesInterfaz.mostrarError(this, "Selecciona una fecha.");
@@ -210,12 +201,11 @@ public class PanelAgenda extends JPanel {
             eventosMostrados = ventana.getGestorEventos().agendaPorFecha(fecha);
             mostrarTabla();
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
     private void cargarInscripciones() {
-        // Busca los eventos asociados al asistente y los ordena por fecha y horario.
         Asistente asistente = (Asistente) ventana.getSesion();
         eventosMostrados = new java.util.ArrayList<>();
         for (int idEvento : asistente.getEventos()) {
@@ -230,7 +220,6 @@ public class PanelAgenda extends JPanel {
     }
 
     private void mostrarTabla() {
-        // Convierte la lista actual en filas para el modelo de la tabla.
         String[] columnas = {"Id", "Fecha", "Inicio", "Fin", "Actividad", "Ciudad",
                 "Direccion", "Estado"};
         Object[][] filas = new Object[eventosMostrados.size()][8];
@@ -244,7 +233,6 @@ public class PanelAgenda extends JPanel {
     }
 
     private Evento eventoSeleccionado() {
-        // Las acciones requieren una fila seleccionada para identificar el evento.
         int fila = tabla.getSelectedRow();
         if (fila < 0) {
             UtilidadesInterfaz.mostrarError(this, "Selecciona un evento de la tabla.");
@@ -254,7 +242,6 @@ public class PanelAgenda extends JPanel {
     }
 
     private void inscribir() {
-        // Solicita la inscripción del asistente al evento elegido e informa errores.
         Evento evento = eventoSeleccionado();
         if (evento == null) {
             return;
@@ -263,26 +250,57 @@ public class PanelAgenda extends JPanel {
             UtilidadesInterfaz.mostrarError(this, "El evento esta cancelado.");
             return;
         }
-        try {
-            ventana.getGestorEventos().inscribir((Asistente) ventana.getSesion(), evento.getId());
-            UtilidadesInterfaz.mostrarInfo(this, "Te inscribiste al evento \"" + evento.getActividad() + "\".");
-        } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
-        }
+        Asistente asistente = (Asistente) ventana.getSesion();
+        ejecutarInscripcion(botonInscribir,
+                () -> ventana.getGestorEventos().inscribir(asistente, evento.getId()),
+                "Te inscribiste al evento \"" + evento.getActividad() + "\".",
+                null);
     }
 
     private void desinscribir() {
-        // Quita la inscripción y vuelve a cargar la lista para reflejar el cambio.
         Evento evento = eventoSeleccionado();
         if (evento == null) {
             return;
         }
-        try {
-            ventana.getGestorEventos().desinscribir((Asistente) ventana.getSesion(), evento.getId());
-            UtilidadesInterfaz.mostrarInfo(this, "Te desinscribiste del evento \"" + evento.getActividad() + "\".");
-            cargarInscripciones();
-        } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
-        }
+        Asistente asistente = (Asistente) ventana.getSesion();
+        ejecutarInscripcion(botonDesinscribir,
+                () -> ventana.getGestorEventos().desinscribir(asistente, evento.getId()),
+                "Te desinscribiste del evento \"" + evento.getActividad() + "\".",
+                this::cargarInscripciones);
+    }
+
+    /**
+     * Ejecuta la inscripcion o desinscripcion en un hilo de trabajo para no
+     * bloquear el EDT. La sincronizacion real vive en GestorEventos.
+     */
+    private void ejecutarInscripcion(JButton boton, Runnable accion, String mensajeExito,
+                                     Runnable alFinalizar) {
+        boton.setEnabled(false);
+        SwingWorker<Void, Void> trabajador = new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                accion.run();
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                boton.setEnabled(true);
+                try {
+                    get();
+                    UtilidadesInterfaz.mostrarInfo(PanelAgenda.this, mensajeExito);
+                    if (alFinalizar != null) {
+                        alFinalizar.run();
+                    }
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    ventana.mostrarError(PanelAgenda.this, ex);
+                } catch (ExecutionException ex) {
+                    ventana.mostrarError(PanelAgenda.this,
+                            ex.getCause() == null ? ex : ex.getCause());
+                }
+            }
+        };
+        trabajador.execute();
     }
 }

@@ -1,6 +1,7 @@
 package servicios;
 
 import modelo.*;
+import persistencia.ErrorBaseDatos;
 import persistencia.PersistenciaJSON;
 
 import java.io.IOException;
@@ -8,15 +9,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Gestiona la consulta y modificacion de datos y capacidad de los alojamientos,
- * respetando las reservas vigentes.
- */
 public class GestorAlojamientos {
 
-    // Necesito los usuarios para buscar el alojamiento y guardar los cambios.
     private final GestorUsuarios gestorUsuarios;
-    // Y las reservas para no bajar la capacidad o las habitaciones de mas.
     private final GestorReservas gestorReservas;
     private final PersistenciaJSON persistencia;
 
@@ -27,14 +22,8 @@ public class GestorAlojamientos {
         this.persistencia = persistencia;
     }
 
-    /**
-     * Modifica los datos propios de un alojamiento. El parametro "idSesion" es
-     * el id de la cuenta autenticada, para garantizar que solo modifique sus datos.
-     */
     public void modificarDatos(int idSesion, int idAlojamiento, String nombre,
                                Ciudad ciudad, String direccion) {
-        // Comparo el id de la sesion con el del alojamiento para que nadie
-        // pueda modificar los datos de otro.
         Alojamiento alojamiento = gestorUsuarios.buscarAlojamiento(idAlojamiento);
         if (alojamiento == null) {
             throw new IllegalArgumentException("El alojamiento no existe.");
@@ -54,10 +43,6 @@ public class GestorAlojamientos {
         guardarCuentas();
     }
 
-    /**
-     * Modifica la capacidad de un alojamiento, impidiendo que quede por debajo
-     * de la ocupacion existente por reservas activas.
-     */
     public void modificarCapacidad(int idSesion, int idAlojamiento, int nuevaCapacidad) {
         Alojamiento alojamiento = gestorUsuarios.buscarAlojamiento(idAlojamiento);
         if (alojamiento == null) {
@@ -66,9 +51,7 @@ public class GestorAlojamientos {
         if (idSesion != idAlojamiento) {
             throw new IllegalArgumentException("Solo podes modificar tus propios datos.");
         }
-        if (alojamiento instanceof Hotel) {
-            // La capacidad del hotel sale de sus habitaciones, asi que no se
-            // cambia directo: hay que editar las habitaciones.
+        if (alojamiento.esHotel()) {
             throw new IllegalArgumentException("En un hotel la capacidad se calcula a partir "
                     + "de las habitaciones. Modifica la cantidad de habitaciones.");
         }
@@ -84,9 +67,6 @@ public class GestorAlojamientos {
         guardarCuentas();
     }
 
-    /**
-     * Modifica los precios por noche de cada tipo de habitacion del hotel.
-     */
     public void modificarPrecios(int idSesion, int idAlojamiento,
                                  double precioSimple, double precioDoble,
                                  double precioTriple, double precioCuadruple) {
@@ -97,12 +77,12 @@ public class GestorAlojamientos {
         if (idSesion != idAlojamiento) {
             throw new IllegalArgumentException("Solo podes modificar tus propios datos.");
         }
-        if (!(alojamiento instanceof Hotel)) {
+        if (!alojamiento.esHotel()) {
             throw new IllegalArgumentException("Solo los hoteles tienen precios por tipo de habitacion.");
         }
 
         Hotel hotel = (Hotel) alojamiento;
-        // Paso los cuatro precios a un arreglo para recorrerlos comodo.
+
         double[] precios = {precioSimple, precioDoble, precioTriple, precioCuadruple};
         for (int i = 0; i < precios.length; i++) {
             int tipo = i + 1;
@@ -122,11 +102,6 @@ public class GestorAlojamientos {
         guardarCuentas();
     }
 
-    /**
-     * Modifica la distribucion de habitaciones de un hotel y recalcula su
-     * capacidad. Por cada tipo, no permite dejar menos habitaciones que la
-     * ocupacion maxima simultanea de ese tipo.
-     */
     public void modificarHabitaciones(int idSesion, int idAlojamiento,
                                       int simples, int dobles, int triples, int cuadruples) {
         Alojamiento alojamiento = gestorUsuarios.buscarAlojamiento(idAlojamiento);
@@ -136,16 +111,13 @@ public class GestorAlojamientos {
         if (idSesion != idAlojamiento) {
             throw new IllegalArgumentException("Solo podes modificar tus propios datos.");
         }
-        if (!(alojamiento instanceof Hotel)) {
+        if (!alojamiento.esHotel()) {
             throw new IllegalArgumentException("Solo los hoteles tienen habitaciones por capacidad.");
         }
 
         Hotel hotel = (Hotel) alojamiento;
         int[] cantidades = {simples, dobles, triples, cuadruples};
-        // Valida las cantidades y la capacidad resultante (no puede ser cero).
         Hotel.capacidadTotal(simples, dobles, triples, cuadruples);
-
-        // Reviso tipo por tipo que no saque habitaciones que ya estan ocupadas.
 
         for (int i = 0; i < cantidades.length; i++) {
             int tipo = i + 1;
@@ -166,12 +138,7 @@ public class GestorAlojamientos {
         guardarCuentas();
     }
 
-    /**
-     * Devuelve las reservas activas del alojamiento que se superponen con el
-     * periodo indicado, para consultar los huespedes alojados.
-     */
     public List<Reserva> huespedesEnPeriodo(int idAlojamiento, LocalDate desde, LocalDate hasta) {
-        // Me quedo con las reservas activas que tocan el periodo elegido.
         List<Reserva> resultado = new ArrayList<>();
         for (Reserva r : gestorReservas.reservasDeAlojamiento(idAlojamiento)) {
             if (r.estaActiva() && r.getIngreso().isBefore(hasta) && r.getEgreso().isAfter(desde)) {
@@ -185,7 +152,7 @@ public class GestorAlojamientos {
         try {
             persistencia.guardarCuentas(gestorUsuarios.getUsuarios());
         } catch (IOException e) {
-            throw new RuntimeException("No se pudo guardar cuentas.json: " + e.getMessage(), e);
+            throw new ErrorBaseDatos("No se pudo guardar cuentas.json: " + e.getMessage(), e);
         }
     }
 }

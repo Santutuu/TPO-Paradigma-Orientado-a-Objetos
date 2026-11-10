@@ -1,12 +1,16 @@
 package servicios;
 
 import modelo.*;
+import persistencia.ErrorBaseDatos;
 import persistencia.PersistenciaJSON;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Gestiona el registro, la autenticacion y la busqueda de cuentas. Cada cuenta
@@ -14,26 +18,19 @@ import java.util.Locale;
  */
 public class GestorUsuarios {
 
-    // Lista de cuentas cargada en memoria.
-    private final List<Usuario> usuarios;
-    // La uso para guardar los cambios en cuentas.json.
+    private final Set<Usuario> usuarios;
     private final PersistenciaJSON persistencia;
 
-    public GestorUsuarios(List<Usuario> usuarios, PersistenciaJSON persistencia) {
+    public GestorUsuarios(Set<Usuario> usuarios, PersistenciaJSON persistencia) {
         this.usuarios = usuarios;
         this.persistencia = persistencia;
     }
 
-    public List<Usuario> getUsuarios() {
-        return usuarios;
+    public synchronized Set<Usuario> getUsuarios() {
+        return Collections.unmodifiableSet(new LinkedHashSet<>(usuarios));
     }
 
-    /**
-     * Devuelve true si ya existe una cuenta con ese nombre de usuario,
-     * sin distinguir mayusculas o minusculas.
-     */
-    public boolean existeNombreUsuario(String nombreUsuario) {
-        // Recorro todas las cuentas y comparo sin importar mayusculas.
+    public synchronized boolean existeNombreUsuario(String nombreUsuario) {
         for (Usuario u : usuarios) {
             if (u.getNombreUsuario().equalsIgnoreCase(nombreUsuario)) {
                 return true;
@@ -42,11 +39,7 @@ public class GestorUsuarios {
         return false;
     }
 
-    /**
-     * Busca una cuenta por nombre de usuario y clave. Devuelve null si no coincide.
-     */
-    public Usuario autenticar(String nombreUsuario, String clave) {
-        // Si encuentro una cuenta con ese usuario y clave, devuelvo la cuenta.
+    public synchronized Usuario autenticar(String nombreUsuario, String clave) {
         for (Usuario u : usuarios) {
             if (u.getNombreUsuario().equals(nombreUsuario) && u.validarClave(clave)) {
                 return u;
@@ -55,49 +48,40 @@ public class GestorUsuarios {
         return null;
     }
 
-    /**
-     * Registra un asistente nuevo. Asigna el id y guarda en disco.
-     */
-    public Asistente registrarAsistente(Asistente asistente) {
+    public synchronized Asistente registrarAsistente(Asistente asistente) {
         if (existeNombreUsuario(asistente.getNombreUsuario())) {
             throw new IllegalArgumentException("El nombre de usuario ya esta en uso.");
         }
         if (existeDocumento(asistente.getTipoDocumento(), asistente.getDni())) {
             throw new IllegalArgumentException("Ya existe una cuenta con ese tipo y numero de documento.");
         }
-        // El id no lo escribe el usuario: lo calculo como el mayor + 1.
         asistente.setId(proximoId());
-        usuarios.add(asistente);
+        if (!usuarios.add(asistente)) {
+            throw new IllegalArgumentException("El nombre de usuario ya esta en uso.");
+        }
         guardarCuentas();
         return asistente;
     }
 
-    /**
-     * Registra un alojamiento nuevo (parroquia, hotel o espacio de organizacion).
-     */
-    public Alojamiento registrarAlojamiento(Alojamiento alojamiento) {
-        // Mismo control que en el asistente: usuario unico e id autogenerado.
+    public synchronized Alojamiento registrarAlojamiento(Alojamiento alojamiento) {
         if (existeNombreUsuario(alojamiento.getNombreUsuario())) {
             throw new IllegalArgumentException("El nombre de usuario ya esta en uso.");
         }
         alojamiento.setId(proximoId());
-        usuarios.add(alojamiento);
+        if (!usuarios.add(alojamiento)) {
+            throw new IllegalArgumentException("El nombre de usuario ya esta en uso.");
+        }
         guardarCuentas();
         return alojamiento;
     }
 
-    /**
-     * Indica si ya existe un asistente con la misma combinacion de tipo y
-     * numero de documento. El numero se compara sin puntos, espacios ni
-     * diferencias entre mayusculas y minusculas.
-     */
-    public boolean existeDocumento(TipoDocumento tipoDocumento, String numero) {
+    public synchronized boolean existeDocumento(TipoDocumento tipoDocumento, String numero) {
         String buscado = normalizarDocumento(numero);
         if (buscado.isEmpty()) {
             return false;
         }
         for (Usuario u : usuarios) {
-            if (u instanceof Asistente) {
+            if (u.esAsistente()) {
                 Asistente a = (Asistente) u;
                 if (a.getTipoDocumento() == tipoDocumento
                         && normalizarDocumento(a.getDni()).equals(buscado)) {
@@ -108,8 +92,6 @@ public class GestorUsuarios {
         return false;
     }
 
-    // Saco puntos, espacios y guiones para que "30.111.222" y "30111222"
-    // se consideren el mismo documento.
     private String normalizarDocumento(String numero) {
         if (numero == null) {
             return "";
@@ -117,7 +99,7 @@ public class GestorUsuarios {
         return numero.replaceAll("[^0-9A-Za-z]", "").toUpperCase(Locale.ROOT);
     }
 
-    public Usuario buscarPorId(int id) {
+    public synchronized Usuario buscarPorId(int id) {
         for (Usuario u : usuarios) {
             if (u.getId() == id) {
                 return u;
@@ -126,27 +108,27 @@ public class GestorUsuarios {
         return null;
     }
 
-    public Asistente buscarAsistente(int id) {
+    public synchronized Asistente buscarAsistente(int id) {
         Usuario u = buscarPorId(id);
-        return (u instanceof Asistente) ? (Asistente) u : null;
+        return (u != null && u.esAsistente()) ? (Asistente) u : null;
     }
 
-    public Alojamiento buscarAlojamiento(int id) {
+    public synchronized Alojamiento buscarAlojamiento(int id) {
         Usuario u = buscarPorId(id);
-        return (u instanceof Alojamiento) ? (Alojamiento) u : null;
+        return (u != null && u.esAlojamiento()) ? (Alojamiento) u : null;
     }
 
-    public List<Alojamiento> listarAlojamientos() {
+    public synchronized List<Alojamiento> listarAlojamientos() {
         List<Alojamiento> resultado = new ArrayList<>();
         for (Usuario u : usuarios) {
-            if (u instanceof Alojamiento) {
+            if (u.esAlojamiento()) {
                 resultado.add((Alojamiento) u);
             }
         }
         return resultado;
     }
 
-    public List<Alojamiento> listarAlojamientosPorCiudad(Ciudad ciudad) {
+    public synchronized List<Alojamiento> listarAlojamientosPorCiudad(Ciudad ciudad) {
         List<Alojamiento> resultado = new ArrayList<>();
         for (Alojamiento a : listarAlojamientos()) {
             if (a.getCiudad() == ciudad) {
@@ -156,7 +138,7 @@ public class GestorUsuarios {
         return resultado;
     }
 
-    private int proximoId() {
+    private synchronized int proximoId() {
         int maximo = 0;
         for (Usuario u : usuarios) {
             if (u.getId() > maximo) {
@@ -170,7 +152,7 @@ public class GestorUsuarios {
         try {
             persistencia.guardarCuentas(usuarios);
         } catch (IOException e) {
-            throw new RuntimeException("No se pudo guardar cuentas.json: " + e.getMessage(), e);
+            throw new ErrorBaseDatos("No se pudo guardar cuentas.json: " + e.getMessage(), e);
         }
     }
 }

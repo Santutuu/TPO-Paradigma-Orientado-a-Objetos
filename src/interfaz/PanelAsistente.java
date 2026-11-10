@@ -24,16 +24,13 @@ public class PanelAsistente extends JPanel {
         setLayout(new BorderLayout());
         setBackground(FONDO);
 
-        // El encabezado identifica al asistente que inició sesión.
         Asistente asistente = (Asistente) ventana.getSesion();
         add(crearEncabezado(asistente.getNombre()), BorderLayout.NORTH);
 
-        // Las opciones del centro llevan a las funciones disponibles para este rol.
         JPanel acciones = new JPanel();
         acciones.setLayout(new BoxLayout(acciones, BoxLayout.Y_AXIS));
         acciones.setOpaque(false);
 
-        // Un acceso por pantalla: las acciones de cada flujo viven adentro del panel.
         acciones.add(botonCentrado("Consultar agenda e inscribirme", e -> ventana.mostrarAgenda()));
         acciones.add(Box.createVerticalStrut(8));
         acciones.add(botonCentrado("Consultar mis inscripciones y desinscribirme", e -> ventana.mostrarMisInscripciones()));
@@ -65,7 +62,6 @@ public class PanelAsistente extends JPanel {
         centro.add(contenido, restricciones);
         add(centro, BorderLayout.CENTER);
 
-        // El pie permite cerrar la sesión o salir de la aplicación.
         JButton botonCerrarSesion = UtilidadesInterfaz.boton("Cerrar sesion", e -> ventana.cerrarSesion());
         JButton botonSalir = UtilidadesInterfaz.boton("Salir", e -> System.exit(0));
         estilizarBotonPie(botonCerrarSesion, true);
@@ -98,7 +94,6 @@ public class PanelAsistente extends JPanel {
     }
 
     private JButton botonCentrado(String texto, java.awt.event.ActionListener accion) {
-        // Crea una opción uniforme y cambia su apariencia al pasar el cursor.
         JButton boton = new JButton(texto);
         boton.addActionListener(accion);
         boton.setAlignmentX(Component.LEFT_ALIGNMENT);

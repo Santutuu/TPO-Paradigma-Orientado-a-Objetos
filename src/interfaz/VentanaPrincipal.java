@@ -46,7 +46,7 @@ public class VentanaPrincipal extends JFrame {
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(960, 640);
-        setLocationRelativeTo(null); // centrado en pantalla
+        setLocationRelativeTo(null);
         mostrarMenuPrincipal();
         setVisible(true);
     }
@@ -71,6 +71,10 @@ public class VentanaPrincipal extends JFrame {
         return sesion;
     }
 
+    public void mostrarError(Component padre, Throwable error) {
+        UtilidadesInterfaz.mostrarError(padre, error, sesion != null && sesion.esAdministrador());
+    }
+
     public void setSesion(Usuario sesion) {
         this.sesion = sesion;
         if (sesion == null) {
@@ -78,7 +82,6 @@ public class VentanaPrincipal extends JFrame {
         }
         actualizarBotonNotificaciones();
         if (sesion != null && gestorNotificaciones.contarNoLeidas(sesion.getId()) > 0) {
-            // Al iniciar sesion, si hay avisos pendientes, se muestran automaticamente.
             SwingUtilities.invokeLater(this::abrirVentanaNotificaciones);
         }
     }
@@ -146,8 +149,6 @@ public class VentanaPrincipal extends JFrame {
             actualizarBotonNotificaciones();
             if (ventanaNotificaciones != null && ventanaNotificaciones.isVisible()) {
                 ventanaNotificaciones.refrescar();
-            } else {
-                abrirVentanaNotificaciones();
             }
         });
     }
@@ -158,10 +159,6 @@ public class VentanaPrincipal extends JFrame {
         revalidate();
         repaint();
     }
-
-    // ------------------------------------------------------------------ //
-    // NAVEGACION                                                          //
-    // ------------------------------------------------------------------ //
 
     public void mostrarMenuPrincipal() {
         setSesion(null);

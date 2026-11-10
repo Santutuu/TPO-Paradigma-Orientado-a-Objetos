@@ -5,20 +5,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Parser de JSON sencillo, escrito a mano, que soporta el subconjunto de JSON
- * que usa la aplicacion: objetos, arreglos, cadenas, numeros, booleanos y null.
- * Rechaza entradas invalidas lanzando una excepcion.
- */
 public class ParserJSON {
 
     private String texto;
     private int posicion;
     private int longitud;
 
-    /**
-     * Parsea un texto JSON y devuelve un Object, List o Map segun corresponda.
-     */
     public Object parsear(String texto) {
         if (texto == null) {
             throw new IllegalArgumentException("El texto a parsear no puede ser null.");
@@ -66,7 +58,7 @@ public class ParserJSON {
 
     private Map<String, Object> leerObjeto() {
         Map<String, Object> mapa = new LinkedHashMap<>();
-        posicion++; // consume '{'
+        posicion++;
         saltarEspacios();
         if (posicion < longitud && texto.charAt(posicion) == '}') {
             posicion++;
@@ -100,7 +92,7 @@ public class ParserJSON {
 
     private List<Object> leerArreglo() {
         List<Object> lista = new ArrayList<>();
-        posicion++; // consume '['
+        posicion++;
         saltarEspacios();
         if (posicion < longitud && texto.charAt(posicion) == ']') {
             posicion++;
@@ -123,7 +115,7 @@ public class ParserJSON {
     }
 
     private String leerCadena() {
-        posicion++; // consume '"'
+        posicion++;
         StringBuilder sb = new StringBuilder();
         while (posicion < longitud) {
             char c = texto.charAt(posicion);

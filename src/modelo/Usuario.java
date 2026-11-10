@@ -1,13 +1,9 @@
 package modelo;
 
-/**
- * Representa una cuenta del sistema. Es una clase abstracta porque nunca se
- * crean usuarios "genericos": toda cuenta es un asistente, un administrador o
- * un alojamiento (que a su vez puede ser parroquia, hotel o espacio de organizacion).
- */
+import java.util.Locale;
+
 public abstract class Usuario {
 
-    // Datos que comparten todas las cuentas del sistema.
     private int id;
     private String nombreUsuario;
     private String clave;
@@ -52,15 +48,49 @@ public abstract class Usuario {
         this.nombre = nombre;
     }
 
-    /**
-     * Verifica si la clave ingresada coincide con la clave de esta cuenta.
-     */
     public boolean validarClave(String claveIngresada) {
         return this.clave.equals(claveIngresada);
     }
 
     /**
-     * Devuelve el rol de la cuenta, definido por cada subclase.
+     * Identidad del usuario para colecciones: el nombre de usuario es unico sin
+     * distinguir mayusculas ni espacios externos.
      */
+    @Override
+    public boolean equals(Object otro) {
+        if (this == otro) {
+            return true;
+        }
+        if (!(otro instanceof Usuario)) {
+            return false;
+        }
+        Usuario usuario = (Usuario) otro;
+        return nombreUsuarioNormalizado().equals(usuario.nombreUsuarioNormalizado());
+    }
+
+    @Override
+    public int hashCode() {
+        return nombreUsuarioNormalizado().hashCode();
+    }
+
+    private String nombreUsuarioNormalizado() {
+        return nombreUsuario == null ? "" : nombreUsuario.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** Tipo concreto de cuenta, usado por la persistencia. */
+    public abstract String getTipoCuenta();
+
+    public boolean esAsistente() {
+        return false;
+    }
+
+    public boolean esAlojamiento() {
+        return false;
+    }
+
+    public boolean esAdministrador() {
+        return false;
+    }
+
     public abstract String getRol();
 }

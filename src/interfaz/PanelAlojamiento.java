@@ -35,7 +35,6 @@ public class PanelAlojamiento extends JPanel {
         Alojamiento alojamiento = (Alojamiento) ventana.getSesion();
         add(crearEncabezado(alojamiento.getNombre()), BorderLayout.NORTH);
 
-        // Resume la información del alojamiento y deja sus operaciones principales a mano.
         JPanel contenido = new JPanel();
         contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));
         contenido.setBackground(FONDO);
@@ -54,9 +53,7 @@ public class PanelAlojamiento extends JPanel {
         acciones.setAlignmentX(Component.LEFT_ALIGNMENT);
         acciones.add(crearBotonMenu("Modificar mis datos", e -> modificarDatos()));
         acciones.add(Box.createVerticalStrut(8));
-        if (alojamiento instanceof Hotel) {
-            // Un hotel no tiene una capacidad suelta: edita precios y
-            // habitaciones por tipo.
+        if (alojamiento.esHotel()) {
             acciones.add(crearBotonMenu("Modificar precios por tipo", e -> modificarPrecios()));
             acciones.add(Box.createVerticalStrut(8));
             acciones.add(crearBotonMenu("Modificar habitaciones", e -> modificarHabitaciones()));
@@ -74,7 +71,6 @@ public class PanelAlojamiento extends JPanel {
         centro.add(contenido);
         add(centro, BorderLayout.CENTER);
 
-        // Las acciones de sesión se mantienen separadas del menú del alojamiento.
         JButton botonCerrarSesion = crearBoton("Cerrar sesion", true, e -> ventana.cerrarSesion());
         JButton botonSalir = crearBoton("Salir", false, e -> System.exit(0));
         JPanel pie = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
@@ -85,7 +81,6 @@ public class PanelAlojamiento extends JPanel {
         add(pie, BorderLayout.SOUTH);
     }
 
-    // Encabezado azul con el nombre del alojamiento autenticado.
     private JPanel crearEncabezado(String nombre) {
         JPanel encabezado = new JPanel();
         encabezado.setLayout(new BoxLayout(encabezado, BoxLayout.Y_AXIS));
@@ -105,7 +100,6 @@ public class PanelAlojamiento extends JPanel {
         return encabezado;
     }
 
-    // Presenta la descripción del modelo en una tarjeta simple de solo lectura.
     private JPanel crearTarjetaDatos(Alojamiento alojamiento) {
         JTextArea area = new JTextArea(alojamiento.descripcion());
         area.setEditable(false);
@@ -134,7 +128,6 @@ public class PanelAlojamiento extends JPanel {
         return titulo;
     }
 
-    // Cada opción del menú abre el formulario correspondiente.
     private JButton crearBotonMenu(String texto, java.awt.event.ActionListener accion) {
         JButton boton = crearBoton(texto, false, accion);
         boton.setHorizontalAlignment(SwingConstants.LEFT);
@@ -206,7 +199,6 @@ public class PanelAlojamiento extends JPanel {
         JComboBox<Ciudad> comboCiudad = new JComboBox<>(Ciudad.values());
         comboCiudad.setSelectedItem(alojamiento.getCiudad());
 
-        // Los campos aparecen precargados para facilitar la edición de los datos actuales.
         JPanel formulario = crearFormulario(
                 crearCampo("Nombre", campoNombre),
                 crearCampo("Ciudad", comboCiudad),
@@ -224,7 +216,7 @@ public class PanelAlojamiento extends JPanel {
             UtilidadesInterfaz.mostrarInfo(this, "Datos actualizados correctamente.");
             ventana.mostrarMenuAlojamiento();
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
@@ -248,11 +240,10 @@ public class PanelAlojamiento extends JPanel {
         } catch (NumberFormatException ex) {
             UtilidadesInterfaz.mostrarError(this, "La capacidad debe ser un numero entero.");
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
-    // Muestro los cuatro precios actuales y mando los nuevos al gestor.
     private void modificarPrecios() {
         Hotel hotel = (Hotel) ventana.getSesion();
         JTextField campo1 = new JTextField(String.valueOf(hotel.getPrecioPorNoche(1)));
@@ -284,7 +275,7 @@ public class PanelAlojamiento extends JPanel {
         } catch (NumberFormatException ex) {
             UtilidadesInterfaz.mostrarError(this, "Los precios deben ser numeros validos.");
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
@@ -292,7 +283,6 @@ public class PanelAlojamiento extends JPanel {
         return Double.parseDouble(campo.getText().trim().replace(',', '.'));
     }
 
-    // Pido cuantas habitaciones hay de cada tipo y actualizo el hotel.
     private void modificarHabitaciones() {
         Hotel hotel = (Hotel) ventana.getSesion();
         JTextField campo1 = new JTextField(String.valueOf(hotel.getCantidadHabitaciones(1)));
@@ -322,11 +312,10 @@ public class PanelAlojamiento extends JPanel {
             UtilidadesInterfaz.mostrarInfo(this, "Habitaciones actualizadas correctamente.");
             ventana.mostrarMenuAlojamiento();
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
-    // Las cantidades no pueden ser negativas; si esta vacio tomo 0.
     private int leerCantidadHabitaciones(JTextField campo, String etiqueta) {
         String texto = campo.getText().trim();
         if (texto.isEmpty()) {
@@ -349,7 +338,6 @@ public class PanelAlojamiento extends JPanel {
     private void consultarHuespedes() {
         Alojamiento alojamiento = (Alojamiento) ventana.getSesion();
 
-        // Los selectores limitan el periodo a las fechas disponibles del evento.
         JComboBox<LocalDate> comboDesde = crearSelectorFecha();
         JComboBox<LocalDate> comboHasta = crearSelectorFecha();
         comboDesde.setSelectedIndex(0);
@@ -380,12 +368,11 @@ public class PanelAlojamiento extends JPanel {
                     .huespedesEnPeriodo(alojamiento.getId(), desde, hasta);
             mostrarHuespedes(huespedes, desde, hasta);
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
     private void cancelarReserva() {
-        // El alojamiento cancela una de las reservas activas que recibio.
         Alojamiento alojamiento = (Alojamiento) ventana.getSesion();
         List<Reserva> activas = ventana.getGestorReservas()
                 .reservasActivasDeAlojamiento(alojamiento.getId());
@@ -422,11 +409,10 @@ public class PanelAlojamiento extends JPanel {
             UtilidadesInterfaz.mostrarInfo(this, "Reserva cancelada.");
             ventana.mostrarMenuAlojamiento();
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
-    // Arma la linea que se muestra en el selector de reservas a cancelar.
     private String descripcionReserva(Reserva reserva) {
         Usuario asistente = ventana.getGestorUsuarios().buscarPorId(reserva.getIdAsistente());
         String nombre = asistente != null
@@ -465,8 +451,6 @@ public class PanelAlojamiento extends JPanel {
     }
 
     private void mostrarHuespedes(List<Reserva> huespedes, LocalDate desde, LocalDate hasta) {
-        // Presenta los resultados en una tabla de solo lectura con estilo uniforme.
-        // Para hoteles agrego el tipo de habitacion y cuantas personas van.
         String[] columnas = {"Reserva", "Asistente", "Habitacion", "Personas", "Ingreso", "Egreso"};
         Object[][] filas = new Object[huespedes.size()][6];
         for (int i = 0; i < huespedes.size(); i++) {

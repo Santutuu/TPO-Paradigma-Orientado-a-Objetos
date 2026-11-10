@@ -21,10 +21,8 @@ public class PanelRegistroAlojamiento extends JPanel {
     private final JTextField campoCapacidad;
     private final JComboBox<String> comboTipo;
     private final JPanel panelExtra;
-    // Campos que aparecen u ocultan segun el tipo de alojamiento.
     private final JTextField campoResponsable;
     private final JTextField campoCategoria;
-    // Un precio por cada tipo de habitacion del hotel.
     private final JTextField campoPrecio1;
     private final JTextField campoPrecio2;
     private final JTextField campoPrecio3;
@@ -46,7 +44,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         setBackground(FONDO);
         add(crearEncabezado(), BorderLayout.NORTH);
 
-        // Se crean los campos compartidos y los datos específicos de cada tipo.
         campoNombreUsuario = new JTextField();
         campoClave = new JPasswordField();
         campoNombre = new JTextField();
@@ -76,7 +73,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         });
         actualizarCampoExtra();
 
-        // El formulario central presenta los datos en una columna uniforme.
         JPanel formulario = new JPanel();
         formulario.setLayout(new BoxLayout(formulario, BoxLayout.Y_AXIS));
         formulario.setOpaque(false);
@@ -124,7 +120,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         desplazamiento.getViewport().setBackground(FONDO);
         add(desplazamiento, BorderLayout.CENTER);
 
-        // El pie permite regresar a la pantalla de inicio.
         JButton botonVolver = crearBoton("Volver", false, e -> ventana.mostrarMenuPrincipal());
         JPanel pie = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         pie.setBackground(new Color(235, 239, 244));
@@ -133,7 +128,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         add(pie, BorderLayout.SOUTH);
     }
 
-    // Encabezado azul con el título y una breve indicación para registrarse.
     private JPanel crearEncabezado() {
         JPanel encabezado = new JPanel();
         encabezado.setLayout(new BoxLayout(encabezado, BoxLayout.Y_AXIS));
@@ -153,7 +147,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         return encabezado;
     }
 
-    // Agrupa la etiqueta y el control correspondiente en una fila visual.
     private JPanel crearCampo(String etiqueta, JComponent campo) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -180,7 +173,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         return panel;
     }
 
-    // Da el mismo aspecto a los botones principal y secundario.
     private JButton crearBoton(String texto, boolean principal, java.awt.event.ActionListener accion) {
         JButton boton = new JButton(texto);
         boton.addActionListener(accion);
@@ -196,7 +188,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         return boton;
     }
 
-    // Muestra un dato adicional solo cuando el tipo de alojamiento lo necesita.
     private void actualizarCampoExtra() {
         panelExtra.removeAll();
         String tipo = (String) comboTipo.getSelectedItem();
@@ -205,8 +196,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         if ("PARROQUIA".equals(tipo)) {
             panelExtra.add(crearCampo("Responsable", campoResponsable));
         } else if (esHotel) {
-            // Para el hotel pido categoria, los cuatro precios y las cuatro
-            // cantidades de habitaciones.
             panelExtra.add(crearCampo("Categoria (1 a 5)", campoCategoria));
             panelExtra.add(crearCampo("Precio habitacion simple", campoPrecio1));
             panelExtra.add(crearCampo("Precio habitacion doble", campoPrecio2));
@@ -220,7 +209,6 @@ public class PanelRegistroAlojamiento extends JPanel {
             panelExtra.add(crearCampo("Organizador", campoOrganizador));
         }
 
-        // En un hotel la capacidad se calcula a partir de las habitaciones.
         if (filaCapacidad != null) {
             filaCapacidad.setVisible(!esHotel);
             if (filaCapacidad.getParent() != null) {
@@ -233,7 +221,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         repaint();
     }
 
-    // Convierto el texto del precio a double y acepto coma o punto decimal.
     private double leerPrecio(JTextField campo, String etiqueta) {
         String texto = campo.getText().trim();
         if (texto.isEmpty()) {
@@ -260,7 +247,6 @@ public class PanelRegistroAlojamiento extends JPanel {
         }
     }
 
-    // Si el campo esta vacio tomo 0; si escribieron cualquier cosa, aviso.
     private int leerCantidadHabitaciones(JTextField campo, String etiqueta) {
         String texto = campo.getText().trim();
         if (texto.isEmpty()) {
@@ -282,7 +268,6 @@ public class PanelRegistroAlojamiento extends JPanel {
 
     private void registrar() {
         try {
-            // Lee los valores comunes y luego construye el alojamiento según el tipo elegido.
             String nombreUsuario = campoNombreUsuario.getText().trim();
             String clave = new String(campoClave.getPassword());
             String nombre = campoNombre.getText().trim();
@@ -295,12 +280,10 @@ public class PanelRegistroAlojamiento extends JPanel {
                 return;
             }
 
-            // En los hoteles la capacidad se calcula con las habitaciones.
             int capacidad = "HOTEL".equals(tipo)
                     ? 0 : Integer.parseInt(campoCapacidad.getText().trim());
 
             Alojamiento alojamiento;
-            // Cada opción crea el modelo concreto que corresponde al tipo elegido.
             switch (tipo) {
                 case "PARROQUIA":
                     String responsable = campoResponsable.getText().trim();
@@ -311,8 +294,6 @@ public class PanelRegistroAlojamiento extends JPanel {
                             nombre, ciudad, direccion, capacidad, responsable);
                     break;
                 case "HOTEL":
-                    // Leo los cuatro precios y las cuatro cantidades. Despues
-                    // valido que los tipos con habitaciones tengan precio.
                     int categoria = Integer.parseInt(campoCategoria.getText().trim());
                     double precio1 = leerPrecio(campoPrecio1, "1 persona");
                     double precio2 = leerPrecio(campoPrecio2, "2 personas");
@@ -342,7 +323,6 @@ public class PanelRegistroAlojamiento extends JPanel {
                     throw new IllegalArgumentException("Tipo de alojamiento invalido.");
             }
 
-            // Registra la cuenta y vuelve al inicio cuando la operación termina bien.
             ventana.getGestorUsuarios().registrarAlojamiento(alojamiento);
             UtilidadesInterfaz.mostrarInfo(this, "Alojamiento registrado correctamente.");
             ventana.mostrarMenuPrincipal();
@@ -350,7 +330,7 @@ public class PanelRegistroAlojamiento extends JPanel {
             UtilidadesInterfaz.mostrarError(this, "La capacidad, la categoria, el precio y las "
                     + "habitaciones deben ser numeros validos.");
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 }

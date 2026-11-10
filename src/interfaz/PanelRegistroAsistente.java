@@ -31,21 +31,16 @@ public class PanelRegistroAsistente extends JPanel {
         this.ventana = ventana;
         setLayout(new BorderLayout());
         setBackground(FONDO);
-        // El encabezado, el formulario y el pie mantienen la misma estructura visual.
         add(crearEncabezado(), BorderLayout.NORTH);
 
-        // Campos que contienen los datos requeridos para registrar al asistente.
         campoNombreUsuario = new JTextField();
         campoClave = new JPasswordField();
         campoNombre = new JTextField();
         comboTipoDocumento = new JComboBox<>(TipoDocumento.values());
         campoDni = new JTextField();
-        // El origen es el pais: se listan todos los paises y Argentina queda
-        // seleccionada por defecto.
         comboOrigen = new JComboBox<>(nombresDePaises());
         comboOrigen.setSelectedItem("Argentina");
 
-        // El formulario central reúne los datos necesarios para crear la cuenta.
         JPanel formulario = new JPanel();
         formulario.setLayout(new BoxLayout(formulario, BoxLayout.Y_AXIS));
         formulario.setOpaque(false);
@@ -85,13 +80,11 @@ public class PanelRegistroAsistente extends JPanel {
         centro.setBackground(FONDO);
         centro.setBorder(BorderFactory.createEmptyBorder(22, 24, 22, 24));
         centro.add(contenido);
-        // Permite desplazarse si el formulario no entra completo en pantalla.
         JScrollPane desplazamiento = new JScrollPane(centro);
         desplazamiento.setBorder(BorderFactory.createEmptyBorder());
         desplazamiento.getViewport().setBackground(FONDO);
         add(desplazamiento, BorderLayout.CENTER);
 
-        // El pie permite volver a la pantalla de inicio sin completar el registro.
         JButton botonVolver = crearBoton("Volver", false, e -> ventana.mostrarMenuPrincipal());
         JPanel pie = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         pie.setBackground(new Color(235, 239, 244));
@@ -100,7 +93,6 @@ public class PanelRegistroAsistente extends JPanel {
         add(pie, BorderLayout.SOUTH);
     }
 
-    // Muestra el título y una indicación breve en la franja superior.
     private JPanel crearEncabezado() {
         JPanel encabezado = new JPanel();
         encabezado.setLayout(new BoxLayout(encabezado, BoxLayout.Y_AXIS));
@@ -120,7 +112,6 @@ public class PanelRegistroAsistente extends JPanel {
         return encabezado;
     }
 
-    // Coloca cada etiqueta encima de su campo y aplica el estilo común del formulario.
     private JPanel crearCampo(String etiqueta, JComponent campo) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -147,7 +138,6 @@ public class PanelRegistroAsistente extends JPanel {
         return panel;
     }
 
-    // Diferencia visualmente la acción principal de la opción para volver.
     private JButton crearBoton(String texto, boolean principal, java.awt.event.ActionListener accion) {
         JButton boton = new JButton(texto);
         boton.addActionListener(accion);
@@ -181,13 +171,11 @@ public class PanelRegistroAsistente extends JPanel {
 
     private void registrar() {
         try {
-            // Valida los datos ingresados y solicita al gestor crear la cuenta.
             String nombreUsuario = campoNombreUsuario.getText().trim();
             String clave = new String(campoClave.getPassword());
             String nombre = campoNombre.getText().trim();
             TipoDocumento tipoDocumento = (TipoDocumento) comboTipoDocumento.getSelectedItem();
             String dni = campoDni.getText().trim();
-            // El modelo guarda el origen como texto (nombre del pais).
             Object valorOrigen = comboOrigen.getSelectedItem();
             String origen = valorOrigen == null ? "" : valorOrigen.toString().trim();
 
@@ -199,12 +187,11 @@ public class PanelRegistroAsistente extends JPanel {
 
             Asistente asistente = UsuarioFactory.crearAsistente(0, nombreUsuario, clave,
                     nombre, tipoDocumento, dni, origen);
-            // Si el gestor registra la cuenta, informa el resultado y vuelve al inicio.
             ventana.getGestorUsuarios().registrarAsistente(asistente);
             UtilidadesInterfaz.mostrarInfo(this, "Asistente registrado correctamente.");
             ventana.mostrarMenuPrincipal();
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 }

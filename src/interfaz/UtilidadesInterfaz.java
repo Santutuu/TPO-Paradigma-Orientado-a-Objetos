@@ -1,5 +1,7 @@
 package interfaz;
 
+import persistencia.ErrorBaseDatos;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -12,13 +14,26 @@ import java.time.LocalTime;
  */
 public final class UtilidadesInterfaz {
 
+    public static final String MENSAJE_BASE_DATOS =
+            "No se pudo conectar con la base de datos.\n"
+                    + "Contacte al administrador del sistema.";
+
     private UtilidadesInterfaz() {
-        // no se instancia
     }
 
     /** Muestra un dialogo de error. */
     public static void mostrarError(Component padre, String mensaje) {
         JOptionPane.showMessageDialog(padre, mensaje, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    public static void mostrarError(Component padre, Throwable error, boolean mostrarDetalle) {
+        if (error instanceof ErrorBaseDatos && !mostrarDetalle) {
+            mostrarError(padre, MENSAJE_BASE_DATOS);
+            return;
+        }
+        String mensaje = error.getMessage();
+        mostrarError(padre, mensaje == null || mensaje.trim().isEmpty()
+                ? MENSAJE_BASE_DATOS : mensaje);
     }
 
     /** Muestra un dialogo informativo. */

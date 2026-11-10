@@ -2,22 +2,11 @@ package modelo;
 
 import java.time.LocalDate;
 
-/**
- * Reserva de un alojamiento hecha por un asistente. Guarda identificadores en
- * lugar de los objetos completos, tal como indica el UML.
- *
- * En hoteles, una reserva ocupa una habitacion completa: guarda el tipo de
- * habitacion (capacidad en personas), cuantas personas se alojan y el precio
- * por noche vigente al momento de reservar. En parroquias y espacios de
- * organizacion el tipo es 0, la cantidad de personas es 1 y el precio es 0.
- */
 public class Reserva {
 
-    // Para relacionar la reserva uso ids, como pide el UML.
     private int id;
     private int idAsistente;
     private int idAlojamiento;
-    // Estos tres datos son para hoteles. En parroquias/espacios quedan 0, 1 y 0.
     private int tipoHabitacion;
     private int cantidadPersonas;
     private double precioPorNoche;
@@ -25,7 +14,6 @@ public class Reserva {
     private LocalDate egreso;
     private EstadoReserva estado;
 
-    // Constructor completo: lo usan los hoteles y tambien la persistencia.
     public Reserva(int id, int idAsistente, int idAlojamiento,
                    int tipoHabitacion, int cantidadPersonas, double precioPorNoche,
                    LocalDate ingreso, LocalDate egreso, EstadoReserva estado) {
@@ -40,7 +28,6 @@ public class Reserva {
         this.estado = estado;
     }
 
-    /** Constructor compatible para reservas sin datos de hotel. */
     public Reserva(int id, int idAsistente, int idAlojamiento,
                    LocalDate ingreso, LocalDate egreso, EstadoReserva estado) {
         this(id, idAsistente, idAlojamiento, 0, 1, 0.0, ingreso, egreso, estado);
@@ -143,20 +130,11 @@ public class Reserva {
         this.estado = estado;
     }
 
-    /**
-     * Determina si dos reservas se superponen en el tiempo. El ingreso es
-     * inclusivo y el egreso es exclusivo: si una reserva termina el mismo dia
-     * en que empieza la otra, no se consideran superpuestas.
-     */
     public boolean seSuperpone(Reserva otra) {
-        // El ingreso cuenta y el egreso no. Por eso una reserva que termina
-        // el mismo dia que empieza otra no se considera superpuesta.
+
         return this.ingreso.isBefore(otra.egreso) && otra.ingreso.isBefore(this.egreso);
     }
 
-    /**
-     * Cancela la reserva.
-     */
     public void cancelar() {
         this.estado = EstadoReserva.CANCELADA;
     }

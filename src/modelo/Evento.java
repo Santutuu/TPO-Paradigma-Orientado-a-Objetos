@@ -11,7 +11,6 @@ import java.time.LocalTime;
  */
 public class Evento {
 
-    // Datos del evento; horarioFin, direccion y estado son extensiones al UML.
     private int id;
     private LocalDate fecha;
     private LocalTime horario;
@@ -21,7 +20,6 @@ public class Evento {
     private String direccion;
     private EstadoEvento estado;
 
-    // Armo el evento y dejo que los setters validen los datos.
     public Evento(int id, LocalDate fecha, LocalTime horario, LocalTime horarioFin,
                   String actividad, Ciudad ciudad, String direccion, EstadoEvento estado) {
         this.id = id;
@@ -59,7 +57,6 @@ public class Evento {
         this.fecha = fecha;
     }
 
-    /** Horario de inicio del evento. */
     public LocalTime getHorario() {
         return horario;
     }
@@ -71,7 +68,6 @@ public class Evento {
         this.horario = horario;
     }
 
-    /** Horario de fin estimado del evento. */
     public LocalTime getHorarioFin() {
         return horarioFin;
     }
@@ -112,7 +108,6 @@ public class Evento {
         this.ciudad = ciudad;
     }
 
-    /** Direccion donde se realiza el evento. */
     public String getDireccion() {
         return direccion;
     }
@@ -144,14 +139,7 @@ public class Evento {
         return this.estado == EstadoEvento.ACTIVA;
     }
 
-    /**
-     * Determina si este evento se superpone con otro. Solo pueden superponerse
-     * eventos del mismo dia; el fin es exclusivo, por lo que un evento que
-     * termina a las 12:00 no se superpone con otro que empieza a las 12:00.
-     */
     public boolean seSuperpone(Evento otro) {
-        // Para pisarse tienen que ser el mismo dia y los rangos tienen que
-        // cruzarse. Tomo el fin como exclusivo, asi 10-12 y 12-14 no se pisan.
         return this.fecha.equals(otro.fecha)
                 && this.horario.isBefore(otro.horarioFin)
                 && otro.horario.isBefore(this.horarioFin);

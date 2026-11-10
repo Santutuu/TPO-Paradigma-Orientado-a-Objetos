@@ -12,6 +12,7 @@ import servicios.NotificadorReservas;
 
 import javax.swing.*;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Credenciales de prueba documentadas:
@@ -32,7 +33,7 @@ public class Main {
                 System.exit(1);
             }
 
-            List<Usuario> usuarios = persistencia.cargarCuentas();
+            Set<Usuario> usuarios = persistencia.cargarCuentas();
             List<Evento> eventos = persistencia.cargarEventos();
             List<Reserva> reservas = persistencia.cargarReservas();
 
@@ -43,7 +44,6 @@ public class Main {
                     new GestorNotificaciones(gestorUsuarios, persistencia);
             gestorEventos.agregarObservador(gestorNotificaciones);
             gestorReservas.agregarObservador(gestorNotificaciones);
-            // Observador de ejemplo: deja un mensaje cuando se crea o cancela una reserva.
             gestorReservas.agregarObservador(new NotificadorReservas());
             GestorAlojamientos gestorAlojamientos = new GestorAlojamientos(gestorUsuarios, gestorReservas, persistencia);
 
@@ -51,9 +51,14 @@ public class Main {
                     gestorUsuarios, gestorEventos, gestorReservas, gestorAlojamientos,
                     gestorNotificaciones));
         } catch (Exception e) {
+            String detalle = e.getMessage();
+            if (detalle == null || detalle.trim().isEmpty()) {
+                detalle = e.getClass().getSimpleName();
+            }
             JOptionPane.showMessageDialog(null,
-                    "No se pudo iniciar la aplicacion:\n" + e.getMessage(),
-                    "Error de carga", JOptionPane.ERROR_MESSAGE);
+                    "No se pudo iniciar la aplicacion.\n\n" + detalle
+                            + "\n\nCarpeta de datos:\n" + persistencia.carpetaDatos(),
+                    "Error de inicio (Administrador)", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
     }
@@ -72,6 +77,6 @@ public class Main {
         mensaje.append("notificaciones.json es opcional: se crea automaticamente.");
 
         JOptionPane.showMessageDialog(null, mensaje.toString(),
-                "Faltan archivos de datos", JOptionPane.ERROR_MESSAGE);
+                "Faltan archivos de datos (Administrador)", JOptionPane.ERROR_MESSAGE);
     }
 }

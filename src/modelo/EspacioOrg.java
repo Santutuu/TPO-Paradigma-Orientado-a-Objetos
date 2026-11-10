@@ -22,6 +22,11 @@ public class EspacioOrg extends Alojamiento {
     }
 
     @Override
+    public String getTipoCuenta() {
+        return "ESPACIO_ORG";
+    }
+
+    @Override
     public String descripcion() {
         return "Espacio organizado por " + organizador + " - " + getNombre() + ", "
                 + getDireccion() + ", " + getCiudad() + " (capacidad: " + getCapacidad() + ")";

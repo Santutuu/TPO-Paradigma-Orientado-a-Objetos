@@ -11,6 +11,16 @@ public class Administrador extends Usuario {
     }
 
     @Override
+    public String getTipoCuenta() {
+        return "ADMINISTRADOR";
+    }
+
+    @Override
+    public boolean esAdministrador() {
+        return true;
+    }
+
+    @Override
     public String getRol() {
         return "ADMINISTRADOR";
     }

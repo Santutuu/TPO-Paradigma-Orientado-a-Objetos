@@ -5,7 +5,6 @@ package modelo;
  */
 public class Parroquia extends Alojamiento {
 
-    // Persona de la parroquia que queda a cargo de los huespedes.
     private String responsable;
 
     public Parroquia(int id, String nombreUsuario, String clave, String nombre,
@@ -20,6 +19,11 @@ public class Parroquia extends Alojamiento {
 
     public void setResponsable(String responsable) {
         this.responsable = responsable;
+    }
+
+    @Override
+    public String getTipoCuenta() {
+        return "PARROQUIA";
     }
 
     @Override

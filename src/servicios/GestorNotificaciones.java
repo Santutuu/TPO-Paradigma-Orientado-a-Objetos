@@ -1,6 +1,7 @@
 package servicios;
 
 import modelo.*;
+import persistencia.ErrorBaseDatos;
 import persistencia.PersistenciaJSON;
 
 import java.io.IOException;
@@ -30,12 +31,11 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
         try {
             this.notificaciones = persistencia.cargarNotificaciones();
         } catch (IOException e) {
-            throw new RuntimeException("No se pudieron cargar las notificaciones: "
+            throw new ErrorBaseDatos("No se pudieron cargar las notificaciones: "
                     + e.getMessage(), e);
         }
     }
 
-    /** Registra un listener de interfaz para avisar cuando llega una notificacion. */
     public void agregarListener(NotificacionListener listener) {
         if (listener != null && !listeners.contains(listener)) {
             listeners.add(listener);
@@ -46,7 +46,6 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
         listeners.remove(listener);
     }
 
-    /** Devuelve las notificaciones de un usuario, de la mas nueva a la mas vieja. */
     public List<Notificacion> notificacionesDe(int idDestinatario) {
         List<Notificacion> resultado = new ArrayList<>();
         for (Notificacion n : notificaciones) {
@@ -69,7 +68,6 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
         return total;
     }
 
-    /** Marca como leidas todas las notificaciones del usuario y persiste el cambio. */
     public void marcarComoLeidas(int idDestinatario) {
         boolean cambio = false;
         for (Notificacion n : notificaciones) {
@@ -82,10 +80,6 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
             guardar();
         }
     }
-
-    // ------------------------------------------------------------------ //
-    // OBSERVER DE RESERVAS                                                //
-    // ------------------------------------------------------------------ //
 
     @Override
     public void reservaCreada(Reserva reserva) {
@@ -119,10 +113,6 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
         agregarVarias(nuevas);
     }
 
-    // ------------------------------------------------------------------ //
-    // OBSERVER DE EVENTOS                                                 //
-    // ------------------------------------------------------------------ //
-
     @Override
     public void eventoCreado(Evento evento) {
         String mensaje = "Nuevo evento: " + evento.getActividad()
@@ -131,7 +121,6 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
                 + " (" + evento.getDireccion() + ").";
 
         List<Notificacion> nuevas = new ArrayList<>();
-        // El alta de un evento se avisa a todas las cuentas registradas.
         for (Usuario usuario : gestorUsuarios.getUsuarios()) {
             nuevas.add(crearNotificacion(usuario.getId(), Notificacion.TIPO_EVENTO, mensaje));
         }
@@ -146,9 +135,8 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
                 + " (" + evento.getDireccion() + ").";
 
         List<Notificacion> nuevas = new ArrayList<>();
-        // La modificacion solo se avisa a los asistentes inscriptos en el evento.
         for (Usuario usuario : gestorUsuarios.getUsuarios()) {
-            if (usuario instanceof Asistente
+            if (usuario.esAsistente()
                     && ((Asistente) usuario).estaInscrito(evento.getId())) {
                 nuevas.add(crearNotificacion(usuario.getId(), Notificacion.TIPO_EVENTO, mensaje));
             }
@@ -164,19 +152,14 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
                 + " (" + evento.getDireccion() + ").";
 
         List<Notificacion> nuevas = new ArrayList<>();
-        // La cancelacion se avisa solo a los asistentes inscriptos en el evento.
         for (Usuario usuario : gestorUsuarios.getUsuarios()) {
-            if (usuario instanceof Asistente
+            if (usuario.esAsistente()
                     && ((Asistente) usuario).estaInscrito(evento.getId())) {
                 nuevas.add(crearNotificacion(usuario.getId(), Notificacion.TIPO_EVENTO, mensaje));
             }
         }
         agregarVarias(nuevas);
     }
-
-    // ------------------------------------------------------------------ //
-    // INTERNOS                                                            //
-    // ------------------------------------------------------------------ //
 
     private Notificacion crearNotificacion(int idDestinatario, String tipo, String mensaje) {
         return new Notificacion(0, idDestinatario, LocalDateTime.now(), tipo, mensaje, false);
@@ -230,7 +213,7 @@ public class GestorNotificaciones implements ReservaObserver, EventoObserver {
         try {
             persistencia.guardarNotificaciones(notificaciones);
         } catch (IOException e) {
-            throw new RuntimeException("No se pudo guardar notificaciones.json: "
+            throw new ErrorBaseDatos("No se pudo guardar notificaciones.json: "
                     + e.getMessage(), e);
         }
     }

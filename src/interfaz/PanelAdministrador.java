@@ -92,7 +92,7 @@ public class PanelAdministrador extends JPanel {
                     campoDireccion.getText());
             UtilidadesInterfaz.mostrarInfo(this, "Evento registrado correctamente.");
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
@@ -161,7 +161,7 @@ public class PanelAdministrador extends JPanel {
             );
             UtilidadesInterfaz.mostrarInfo(this, "Evento modificado correctamente.");
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 
@@ -187,7 +187,7 @@ public class PanelAdministrador extends JPanel {
             ventana.getGestorEventos().cancelarEvento(eventoSeleccionado.getId());
             UtilidadesInterfaz.mostrarInfo(this, "Evento cancelado correctamente.");
         } catch (Exception ex) {
-            UtilidadesInterfaz.mostrarError(this, ex.getMessage());
+            ventana.mostrarError(this, ex);
         }
     }
 

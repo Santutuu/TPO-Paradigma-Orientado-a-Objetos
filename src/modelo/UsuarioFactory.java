@@ -1,19 +1,9 @@
 package modelo;
 
-/**
- * Fabrica simple de cuentas. Centraliza la construccion de cada subtipo de
- * {@link Usuario} para que la persistencia y la interfaz no repitan los
- * constructores concretos.
- *
- * La seleccion del tipo se hace afuera (en {@code PersistenciaJSON} al leer el
- * campo {@code tipo}, o en los formularios de registro); esta clase se encarga
- * de construir el objeto correcto y de que las validaciones del modelo se
- * apliquen siempre por el mismo camino.
- */
+
 public final class UsuarioFactory {
 
     private UsuarioFactory() {
-        // No se instancia: solo ofrece metodos de creacion.
     }
 
     public static Administrador crearAdministrador(int id, String nombreUsuario,

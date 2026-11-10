@@ -1,6 +1,7 @@
 package servicios;
 
 import modelo.*;
+import persistencia.ErrorBaseDatos;
 import persistencia.PersistenciaJSON;
 
 import java.io.IOException;
@@ -20,12 +21,9 @@ import java.util.List;
  */
 public class GestorReservas {
 
-    // Reservas cargadas desde reservas.json.
     private final List<Reserva> reservas;
-    // Para buscar asistentes y alojamientos por id.
     private final GestorUsuarios gestorUsuarios;
     private final PersistenciaJSON persistencia;
-    // Observadores que se enteran cuando se crea o cancela una reserva.
     private final List<ReservaObserver> observadores;
 
     public GestorReservas(List<Reserva> reservas, GestorUsuarios gestorUsuarios,
@@ -37,29 +35,19 @@ public class GestorReservas {
         completarReservasDeHotelSinTipo();
     }
 
-    /** Agrega un observador que sera notificado ante cambios de reservas. */
     public void agregarObservador(ReservaObserver observador) {
         if (observador != null && !observadores.contains(observador)) {
             observadores.add(observador);
         }
     }
 
-    /** Quita un observador previamente registrado. */
-    public void quitarObservador(ReservaObserver observador) {
-        observadores.remove(observador);
-    }
-
-    /**
-     * Compatibilidad con reservas viejas de hotel que no tienen tipo de
-     * habitacion: les asigna el primer tipo existente y el precio configurado.
-     */
     private void completarReservasDeHotelSinTipo() {
         for (Reserva r : reservas) {
             if (r.getTipoHabitacion() != 0) {
                 continue;
             }
             Alojamiento alojamiento = gestorUsuarios.buscarAlojamiento(r.getIdAlojamiento());
-            if (!(alojamiento instanceof Hotel)) {
+            if (!alojamiento.esHotel()) {
                 continue;
             }
             Hotel hotel = (Hotel) alojamiento;
@@ -88,24 +76,17 @@ public class GestorReservas {
         return null;
     }
 
-    /**
-     * Devuelve la reserva activa de un asistente, o null si no tiene.
-     */
-    public Reserva reservaActivaDe(int idAsistente) {
-        // Solo puede haber una reserva activa por asistente.
+    public List<Reserva> reservasActivasDeAsistente(int idAsistente) {
+        List<Reserva> resultado = new ArrayList<>();
         for (Reserva r : reservas) {
             if (r.getIdAsistente() == idAsistente && r.estaActiva()) {
-                return r;
+                resultado.add(r);
             }
         }
-        return null;
+        resultado.sort(Comparator.comparing(Reserva::getIngreso));
+        return resultado;
     }
 
-    /**
-     * Devuelve todas las reservas de un asistente, activas y canceladas, con la
-     * fecha de ingreso mas reciente primero. Sirve para el historial de la
-     * pantalla de reservas.
-     */
     public List<Reserva> reservasDeAsistente(int idAsistente) {
         List<Reserva> resultado = new ArrayList<>();
         for (Reserva r : reservas) {
@@ -118,19 +99,11 @@ public class GestorReservas {
         return resultado;
     }
 
-    /**
-     * Crea una reserva para un alojamiento que no es hotel (parroquia o espacio
-     * de organizacion). Cada reserva representa una persona.
-     */
     public Reserva crearReserva(int idAsistente, int idAlojamiento,
                                 LocalDate ingreso, LocalDate egreso) {
         return crearReserva(idAsistente, idAlojamiento, 0, 1, ingreso, egreso);
     }
 
-    /**
-     * Crea una reserva nueva validando todas las reglas de negocio. Para
-     * hoteles hay que indicar el tipo de habitacion y cuantas personas van.
-     */
     public Reserva crearReserva(int idAsistente, int idAlojamiento,
                                 int tipoHabitacion, int cantidadPersonas,
                                 LocalDate ingreso, LocalDate egreso) {
@@ -147,15 +120,20 @@ public class GestorReservas {
         if (!egreso.isAfter(ingreso)) {
             throw new IllegalArgumentException("El egreso debe ser posterior al ingreso.");
         }
-        if (reservaActivaDe(idAsistente) != null) {
-            throw new IllegalArgumentException("Ya tenes una reserva activa. Cancelala antes de reservar otro alojamiento.");
+        for (Reserva existente : reservas) {
+            if (existente.getIdAsistente() == idAsistente && existente.estaActiva()
+                    && existente.getIngreso().isBefore(egreso)
+                    && ingreso.isBefore(existente.getEgreso())) {
+                throw new IllegalArgumentException("Ya tenes una reserva activa del "
+                        + existente.getIngreso() + " al " + existente.getEgreso()
+                        + " que se superpone con ese periodo.");
+            }
         }
 
         int tipo;
         int personas;
         double precioPorNoche;
-        if (alojamiento instanceof Hotel) {
-            // En un hotel se reserva una habitacion completa de un tipo.
+        if (alojamiento.esHotel()) {
             Hotel hotel = (Hotel) alojamiento;
             if (tipoHabitacion < 1 || tipoHabitacion > Hotel.MAX_PERSONAS_POR_HABITACION) {
                 throw new IllegalArgumentException("Elegi un tipo de habitacion valido (1 a 4 personas).");
@@ -180,8 +158,6 @@ public class GestorReservas {
             tipo = tipoHabitacion;
             personas = cantidadPersonas;
         } else {
-            // Parroquias y espacios siguen con la regla vieja: una persona
-            // por reserva y capacidad total.
             if (tipoHabitacion != 0 || cantidadPersonas != 1) {
                 throw new IllegalArgumentException("Solo los hoteles se reservan por tipo de habitacion.");
             }
@@ -249,7 +225,6 @@ public class GestorReservas {
             throw new IllegalArgumentException("La reserva ya esta cancelada.");
         }
 
-        // Comparo con la fecha y hora actual: si ya paso el limite, no dejo cancelar.
         LocalDateTime limite = reserva.getIngreso().atStartOfDay().minusHours(24);
         if (LocalDateTime.now().isAfter(limite)) {
             throw new IllegalArgumentException("Solo podes cancelar con al menos 24 horas de anticipacion "
@@ -272,10 +247,6 @@ public class GestorReservas {
         return resultado;
     }
 
-    /**
-     * Reservas activas de un alojamiento, ordenadas por fecha de ingreso. Se
-     * usa en el menu del alojamiento para elegir cual cancelar.
-     */
     public List<Reserva> reservasActivasDeAlojamiento(int idAlojamiento) {
         List<Reserva> resultado = new ArrayList<>();
         for (Reserva r : reservas) {
@@ -287,12 +258,6 @@ public class GestorReservas {
         return resultado;
     }
 
-    /**
-     * Cantidad de reservas activas de un alojamiento que se superponen con el
-     * periodo solicitado, calculada dia por dia para respetar la capacidad en
-     * cada tramo (no solo en la fecha de ingreso). Se usa para alojamientos que
-     * no son hoteles.
-     */
     public int ocupacionMaxima(int idAlojamiento, LocalDate ingreso, LocalDate egreso) {
         int maximo = 0;
         for (LocalDate dia = ingreso; dia.isBefore(egreso); dia = dia.plusDays(1)) {
@@ -334,11 +299,6 @@ public class GestorReservas {
         return ocupacionMaxima(idAlojamiento, desde, hasta);
     }
 
-    /**
-     * Cantidad maxima de habitaciones de un tipo que estan ocupadas al mismo
-     * tiempo por reservas activas. Se usa para validar la reduccion de
-     * habitaciones de un hotel.
-     */
     public int ocupacionMaximaHabitaciones(int idAlojamiento, int tipoHabitacion) {
         LocalDate desde = null;
         LocalDate hasta = null;
@@ -377,12 +337,10 @@ public class GestorReservas {
     /**
      * Habitaciones libres de un tipo para todo el periodo solicitado.
      */
-    // Cuenta cuantas habitaciones de un tipo quedan libres. Voy dia por dia
-    // y me quedo con el maximo de habitaciones ocupadas en ese tramo.
     public int habitacionesDisponibles(int idAlojamiento, int tipoHabitacion,
                                        LocalDate ingreso, LocalDate egreso) {
         Alojamiento alojamiento = gestorUsuarios.buscarAlojamiento(idAlojamiento);
-        if (!(alojamiento instanceof Hotel)) {
+        if (!alojamiento.esHotel()) {
             throw new IllegalArgumentException("El alojamiento no es un hotel.");
         }
         Hotel hotel = (Hotel) alojamiento;
@@ -403,14 +361,9 @@ public class GestorReservas {
         return hotel.getCantidadHabitaciones(tipoHabitacion) - ocupadasMaximas;
     }
 
-    /**
-     * Plazas disponibles de un alojamiento durante todo el periodo solicitado.
-     * Para hoteles devuelve la suma de habitaciones libres de todos los tipos.
-     */
     public int disponibilidad(int idAlojamiento, LocalDate ingreso, LocalDate egreso) {
         Alojamiento alojamiento = gestorUsuarios.buscarAlojamiento(idAlojamiento);
-        if (alojamiento instanceof Hotel) {
-            // Para un hotel sumo las habitaciones libres de todos los tipos.
+        if (alojamiento.esHotel()) {
             int total = 0;
             for (int tipo = 1; tipo <= Hotel.MAX_PERSONAS_POR_HABITACION; tipo++) {
                 total += Math.max(0, habitacionesDisponibles(idAlojamiento, tipo, ingreso, egreso));
@@ -424,7 +377,6 @@ public class GestorReservas {
         return tipoHabitacion == 1 ? "1 persona" : tipoHabitacion + " personas";
     }
 
-    // Busco el id mas grande y le sumo uno, igual que con usuarios y eventos.
     private int proximoId() {
         int maximo = 0;
         for (Reserva r : reservas) {
@@ -461,7 +413,7 @@ public class GestorReservas {
         try {
             persistencia.guardarReservas(reservas);
         } catch (IOException e) {
-            throw new RuntimeException("No se pudo guardar reservas.json: " + e.getMessage(), e);
+            throw new ErrorBaseDatos("No se pudo guardar reservas.json: " + e.getMessage(), e);
         }
     }
 }

@@ -24,21 +24,23 @@ public class VentanaNotificaciones extends JDialog {
     private static final Color TEXTO = new Color(44, 58, 72);
     private static final Color BORDE = new Color(215, 222, 230);
 
+    private final VentanaPrincipal ventana;
     private final GestorNotificaciones gestor;
     private final Runnable alCerrar;
     private final JTextArea area;
     private int idUsuario;
 
-    public VentanaNotificaciones(Window owner, GestorNotificaciones gestor,
+    public VentanaNotificaciones(VentanaPrincipal ventana, GestorNotificaciones gestor,
                                  int idUsuario, Runnable alCerrar) {
-        super(owner, "Notificaciones", ModalityType.MODELESS);
+        super(ventana, "Notificaciones", ModalityType.MODELESS);
+        this.ventana = ventana;
         this.gestor = gestor;
         this.idUsuario = idUsuario;
         this.alCerrar = alCerrar;
 
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setSize(560, 420);
-        setLocationRelativeTo(owner);
+        setLocationRelativeTo(ventana);
         setLayout(new BorderLayout());
         getContentPane().setBackground(FONDO);
 
@@ -117,6 +119,8 @@ public class VentanaNotificaciones extends JDialog {
     private void marcarLeidasYCerrar() {
         try {
             gestor.marcarComoLeidas(idUsuario);
+        } catch (RuntimeException ex) {
+            ventana.mostrarError(this, ex);
         } finally {
             if (alCerrar != null) {
                 alCerrar.run();

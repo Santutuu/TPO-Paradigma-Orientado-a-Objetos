@@ -15,20 +15,16 @@ import java.util.Map;
  */
 public class Hotel extends Alojamiento {
 
-    /** Rango valido de categorias (estrellas). */
+
     public static final int CATEGORIA_MINIMA = 1;
     public static final int CATEGORIA_MAXIMA = 5;
 
-    /** Capacidad maxima de una habitacion (cantidad de personas). */
     public static final int MAX_PERSONAS_POR_HABITACION = 4;
 
     private int categoria;
-    // Guardo el precio por noche de cada tipo (1, 2, 3 o 4 personas).
     private final Map<Integer, Double> preciosPorTipo;
-    // Y aca la cantidad de habitaciones de cada tipo.
     private final Map<Integer, Integer> habitaciones;
 
-    // Recibe los cuatro precios y las cuatro cantidades de habitaciones.
     public Hotel(int id, String nombreUsuario, String clave, String nombre,
                  Ciudad ciudad, String direccion, int categoria,
                  double precioSimple, double precioDoble, double precioTriple,
@@ -49,7 +45,6 @@ public class Hotel extends Alojamiento {
                 habitacionesTriples, habitacionesCuadruples);
     }
 
-    /** Constructor compatible con un unico precio para todos los tipos. */
     public Hotel(int id, String nombreUsuario, String clave, String nombre,
                  Ciudad ciudad, String direccion, int categoria, double precioPorNoche,
                  int habitacionesSimples, int habitacionesDobles,
@@ -64,9 +59,7 @@ public class Hotel extends Alojamiento {
         return categoria;
     }
 
-    /**
-     * Valida que la categoria este entre 1 y 5 estrellas.
-     */
+
     public void setCategoria(int categoria) {
         if (categoria < CATEGORIA_MINIMA || categoria > CATEGORIA_MAXIMA) {
             throw new IllegalArgumentException("La categoria debe estar entre "
@@ -75,7 +68,6 @@ public class Hotel extends Alojamiento {
         this.categoria = categoria;
     }
 
-    /** Precio por noche de una habitacion segun su capacidad en personas. */
     public double getPrecioPorNoche(int tipoHabitacion) {
         Double precio = preciosPorTipo.get(tipoHabitacion);
         return precio == null ? 0.0 : precio;
@@ -89,18 +81,12 @@ public class Hotel extends Alojamiento {
         preciosPorTipo.put(tipoHabitacion, precioPorNoche);
     }
 
-    /**
-     * Devuelve una vista de solo lectura: capacidad de la habitacion (personas)
-     * -> precio por noche.
-     */
+
     public Map<Integer, Double> getPreciosPorTipoHabitacion() {
         return Collections.unmodifiableMap(preciosPorTipo);
     }
 
-    /**
-     * Devuelve una vista de solo lectura: capacidad de la habitacion (personas)
-     * -> cantidad de habitaciones de esa capacidad.
-     */
+
     public Map<Integer, Integer> getHabitacionesPorPersonas() {
         return Collections.unmodifiableMap(habitaciones);
     }
@@ -119,10 +105,6 @@ public class Hotel extends Alojamiento {
         return total;
     }
 
-    /**
-     * Reemplaza la distribucion de habitaciones y recalcula la capacidad total.
-     * Las cantidades no pueden ser negativas y debe quedar al menos una plaza.
-     */
     public void setHabitaciones(int habitacionesSimples, int habitacionesDobles,
                                 int habitacionesTriples, int habitacionesCuadruples) {
         int total = capacidadTotal(habitacionesSimples, habitacionesDobles,
@@ -132,7 +114,6 @@ public class Hotel extends Alojamiento {
         setCapacidad(total);
     }
 
-    /** Resumen legible, por ejemplo: "1 persona: 2, 2 personas: 3". */
     public String resumenHabitaciones() {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<Integer, Integer> entrada : habitaciones.entrySet()) {
@@ -149,8 +130,6 @@ public class Hotel extends Alojamiento {
         return sb.toString();
     }
 
-    // Muestro solo los tipos que tienen habitaciones, para no llenar la
-    // descripcion con precios de habitaciones que el hotel no tiene.
     /** Resumen legible de precios de los tipos que tienen habitaciones. */
     public String resumenPrecios() {
         StringBuilder sb = new StringBuilder();
@@ -168,10 +147,6 @@ public class Hotel extends Alojamiento {
         return sb.toString();
     }
 
-    /**
-     * Calcula la capacidad total (plazas) de una distribucion de habitaciones
-     * sin modificar el hotel. Se usa para validar cambios antes de aplicarlos.
-     */
     public static int capacidadTotal(int simples, int dobles, int triples, int cuadruples) {
         validarCantidad(simples, "simples");
         validarCantidad(dobles, "dobles");
@@ -198,14 +173,22 @@ public class Hotel extends Alojamiento {
         }
     }
 
-    // Siempre guardo los cuatro tipos, incluso los que tienen cantidad 0,
-    // para que despues sea facil persistirlos y consultarlos.
     private void guardarHabitaciones(int simples, int dobles, int triples, int cuadruples) {
         habitaciones.clear();
         habitaciones.put(1, simples);
         habitaciones.put(2, dobles);
         habitaciones.put(3, triples);
         habitaciones.put(4, cuadruples);
+    }
+
+    @Override
+    public String getTipoCuenta() {
+        return "HOTEL";
+    }
+
+    @Override
+    public boolean esHotel() {
+        return true;
     }
 
     @Override

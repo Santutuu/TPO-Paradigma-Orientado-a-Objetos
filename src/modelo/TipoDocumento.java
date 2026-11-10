@@ -6,7 +6,6 @@ package modelo;
  * mismo numero sin que el sistema las confunda.
  */
 public enum TipoDocumento {
-    // DNI y pasaporte son los casos normales; OTRO queda para documentos raros.
     DNI,
     PASAPORTE,
     OTRO

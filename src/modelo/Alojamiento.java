@@ -7,7 +7,6 @@ package modelo;
  */
 public abstract class Alojamiento extends Usuario {
 
-    // Datos comunes a parroquias, hoteles y espacios de organizacion.
     private Ciudad ciudad;
     private String direccion;
     private int capacidad;
@@ -62,6 +61,16 @@ public abstract class Alojamiento extends Usuario {
     @Override
     public String toString() {
         return getNombre();
+    }
+
+    @Override
+    public boolean esAlojamiento() {
+        return true;
+    }
+
+    /** Indica si el alojamiento es un hotel, que se reserva por habitacion. */
+    public boolean esHotel() {
+        return false;
     }
 
     @Override

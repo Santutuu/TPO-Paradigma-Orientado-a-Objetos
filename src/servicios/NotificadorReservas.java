@@ -5,11 +5,6 @@ import modelo.Reserva;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * Observador concreto que informa por consola cuando se crea o cancela una
- * reserva. Sirve como ejemplo de notificacion y deja trazabilidad de los
- * cambios sin acoplar al gestor con la interfaz grafica.
- */
 public class NotificadorReservas implements ReservaObserver {
 
     private static final DateTimeFormatter FORMATO_FECHA =

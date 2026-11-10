@@ -1,6 +1,5 @@
 package interfaz;
 
-import modelo.Administrador;
 import modelo.Usuario;
 
 import javax.swing.*;
@@ -18,7 +17,6 @@ public class PanelInicioSesion extends JPanel {
     private final VentanaPrincipal ventana;
     private final JTextField campoUsuario;
     private final JPasswordField campoClave;
-    // Colores compartidos para mantener coherente el estilo de esta pantalla.
     private static final Color AZUL_OSCURO = new Color(31, 55, 79);
     private static final Color FONDO = new Color(245, 247, 250);
     private static final Color TEXTO = new Color(44, 58, 72);
@@ -29,7 +27,6 @@ public class PanelInicioSesion extends JPanel {
         setLayout(new BorderLayout());
         setBackground(FONDO);
 
-        // La pantalla se divide en encabezado, formulario central y acciones públicas.
         add(crearEncabezado(), BorderLayout.NORTH);
 
         campoUsuario = new JTextField();
@@ -37,7 +34,6 @@ public class PanelInicioSesion extends JPanel {
         estilizarCampo(campoUsuario);
         estilizarCampo(campoClave);
 
-        // El formulario agrupa las credenciales y el botón que inicia la autenticación.
         JPanel formulario = new JPanel();
         formulario.setLayout(new BoxLayout(formulario, BoxLayout.Y_AXIS));
         formulario.setOpaque(false);
@@ -76,7 +72,6 @@ public class PanelInicioSesion extends JPanel {
         centro.add(contenido);
         add(centro, BorderLayout.CENTER);
 
-        // Estas acciones son públicas y pueden usarse sin iniciar sesión.
         JButton botonRegistroAsistente = botonPie("Registrarse como asistente",
                 e -> ventana.mostrarRegistroAsistente());
         JButton botonRegistroAlojamiento = botonPie("Registrarse como alojamiento",
@@ -98,7 +93,6 @@ public class PanelInicioSesion extends JPanel {
         add(pie, BorderLayout.SOUTH);
     }
 
-    // Construye la franja superior con el título y una descripción de la pantalla.
     private JPanel crearEncabezado() {
         JPanel encabezado = new JPanel();
         encabezado.setLayout(new BoxLayout(encabezado, BoxLayout.Y_AXIS));
@@ -118,7 +112,6 @@ public class PanelInicioSesion extends JPanel {
         return encabezado;
     }
 
-    // Agrupa la etiqueta y su campo para que queden ordenados verticalmente.
     private JPanel crearCampo(String etiqueta, JTextField campo) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -138,7 +131,6 @@ public class PanelInicioSesion extends JPanel {
         return panel;
     }
 
-    // Aplica el aspecto común a los campos de usuario y clave.
     private void estilizarCampo(JTextField campo) {
         campo.setFont(campo.getFont().deriveFont(Font.PLAIN, 14f));
         campo.setForeground(TEXTO);
@@ -158,7 +150,6 @@ public class PanelInicioSesion extends JPanel {
         return boton;
     }
 
-    // Estiliza los botones del pie y resalta su estado al pasar el cursor.
     private JButton botonPie(String texto, java.awt.event.ActionListener accion) {
         JButton boton = botonAccion(texto, accion);
         boton.setFont(boton.getFont().deriveFont(Font.PLAIN, 13f));
@@ -188,7 +179,6 @@ public class PanelInicioSesion extends JPanel {
     }
 
     private void iniciarSesion() {
-        // Valida los datos, autentica la cuenta y abre el menú correspondiente a su rol.
         String usuario = campoUsuario.getText().trim();
         String clave = new String(campoClave.getPassword());
 
@@ -197,14 +187,12 @@ public class PanelInicioSesion extends JPanel {
             return;
         }
 
-        // Consulta al gestor si las credenciales corresponden a una cuenta registrada.
         Usuario cuenta = ventana.getGestorUsuarios().autenticar(usuario, clave);
         if (cuenta == null) {
             UtilidadesInterfaz.mostrarError(this, "Usuario o clave incorrectos.");
             return;
         }
 
-        // Guarda la sesión y dirige al usuario al menú habilitado para su rol.
         ventana.setSesion(cuenta);
         switch (cuenta.getRol()) {
             case "ASISTENTE":
@@ -214,11 +202,6 @@ public class PanelInicioSesion extends JPanel {
                 ventana.mostrarMenuAlojamiento();
                 break;
             case "ADMINISTRADOR":
-                if (!(cuenta instanceof Administrador)) {
-                    ventana.setSesion(null);
-                    UtilidadesInterfaz.mostrarError(this, "La cuenta no es un administrador valido.");
-                    return;
-                }
                 ventana.mostrarMenuAdministrador();
                 break;
             default:

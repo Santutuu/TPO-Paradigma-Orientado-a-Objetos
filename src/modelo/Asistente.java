@@ -1,21 +1,16 @@
 package modelo;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
-/**
- * Asistente a la visita del Papa. Guarda la lista de eventos a los que esta
- * inscripto como identificadores, tal como indica el UML.
- */
+
 public class Asistente extends Usuario {
 
-    // Tipo y numero de documento sirven para no duplicar personas.
     private TipoDocumento tipoDocumento;
     private String dni;
-    // Pais de origen del asistente.
     private String origen;
-    // Ids de los eventos a los que esta inscripto (no guardo los objetos).
-    private List<Integer> eventos;
+    private final Set<Integer> eventos;
 
     public Asistente(int id, String nombreUsuario, String clave, String nombre,
                      TipoDocumento tipoDocumento, String dni, String origen) {
@@ -23,7 +18,7 @@ public class Asistente extends Usuario {
         setTipoDocumento(tipoDocumento);
         setDni(dni);
         this.origen = origen;
-        this.eventos = new ArrayList<>();
+        this.eventos = new LinkedHashSet<>();
     }
 
     public TipoDocumento getTipoDocumento() {
@@ -53,31 +48,39 @@ public class Asistente extends Usuario {
         this.origen = origen;
     }
 
-    public List<Integer> getEventos() {
-        return eventos;
+    public synchronized Set<Integer> getEventos() {
+        return Collections.unmodifiableSet(new LinkedHashSet<>(eventos));
     }
 
     /**
      * Inscribe al asistente en un evento. No permite inscripciones duplicadas.
      */
-    public void inscribir(int idEvento) {
-        if (!eventos.contains(idEvento)) {
-            eventos.add(idEvento);
-        }
+    public synchronized void inscribir(int idEvento) {
+        eventos.add(idEvento);
     }
 
     /**
      * Quita al asistente de un evento.
      */
-    public void desinscribir(int idEvento) {
+    public synchronized void desinscribir(int idEvento) {
         eventos.remove(Integer.valueOf(idEvento));
     }
 
     /**
      * Indica si el asistente ya esta inscripto en el evento indicado.
      */
-    public boolean estaInscrito(int idEvento) {
+    public synchronized boolean estaInscrito(int idEvento) {
         return eventos.contains(idEvento);
+    }
+
+    @Override
+    public String getTipoCuenta() {
+        return "ASISTENTE";
+    }
+
+    @Override
+    public boolean esAsistente() {
+        return true;
     }
 
     @Override
