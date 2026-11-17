@@ -5,6 +5,8 @@ import modelo.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 /**
  * Formulario de registro de un alojamiento nuevo (parroquia, hotel o espacio
@@ -45,6 +47,14 @@ public class PanelRegistroAlojamiento extends JPanel {
         add(crearEncabezado(), BorderLayout.NORTH);
 
         campoNombreUsuario = new JTextField();
+        campoNombreUsuario.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (e.getKeyChar() == ' ') {
+                    e.consume();
+                }
+            }
+        });
         campoClave = new JPasswordField();
         campoNombre = new JTextField();
         comboCiudad = new JComboBox<>(Ciudad.values());
@@ -277,6 +287,10 @@ public class PanelRegistroAlojamiento extends JPanel {
 
             if (nombreUsuario.isEmpty() || clave.isEmpty() || nombre.isEmpty() || direccion.isEmpty()) {
                 UtilidadesInterfaz.mostrarError(this, "Completa todos los campos.");
+                return;
+            }
+            if (nombreUsuario.contains(" ")) {
+                UtilidadesInterfaz.mostrarError(this, "El nombre de usuario no puede contener espacios.");
                 return;
             }
 

@@ -4,8 +4,11 @@ import modelo.Ciudad;
 import modelo.Evento;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,22 +26,75 @@ public class PanelAdministrador extends JPanel {
     public PanelAdministrador(VentanaPrincipal ventana) {
         this.ventana = ventana;
         setLayout(new BorderLayout());
-        add(UtilidadesInterfaz.titulo("Menu de administrador"), BorderLayout.NORTH);
+        setBackground(FONDO);
 
-        JPanel botones = new JPanel();
-        botones.setLayout(new BoxLayout(botones, BoxLayout.Y_AXIS));
-        botones.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+        add(crearEncabezado(), BorderLayout.NORTH);
 
-        botones.add(botonCentrado("Registrar evento", e -> registrarEvento()));
-        botones.add(botonCentrado("Modificar evento", e -> modificarEvento()));
-        botones.add(botonCentrado("Cancelar evento", e -> cancelarEvento()));
-        botones.add(botonCentrado("Consultar eventos", e -> ventana.mostrarAgenda()));
+        JPanel acciones = new JPanel();
+        acciones.setLayout(new BoxLayout(acciones, BoxLayout.Y_AXIS));
+        acciones.setOpaque(false);
 
-        add(botones, BorderLayout.CENTER);
+        acciones.add(botonCentrado("Registrar evento", e -> registrarEvento()));
+        acciones.add(Box.createVerticalStrut(8));
+        acciones.add(botonCentrado("Modificar evento", e -> modificarEvento()));
+        acciones.add(Box.createVerticalStrut(8));
+        acciones.add(botonCentrado("Cancelar evento", e -> cancelarEvento()));
+        acciones.add(Box.createVerticalStrut(8));
+        acciones.add(botonCentrado("Consultar eventos", e -> ventana.mostrarAgenda()));
+
+        JPanel contenido = new JPanel();
+        contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));
+        contenido.setOpaque(false);
+        JLabel subtitulo = new JLabel("ACCESOS DISPONIBLES");
+        subtitulo.setFont(subtitulo.getFont().deriveFont(Font.BOLD, 12f));
+        subtitulo.setForeground(new Color(99, 116, 133));
+        subtitulo.setAlignmentX(Component.LEFT_ALIGNMENT);
+        contenido.add(subtitulo);
+        contenido.add(Box.createVerticalStrut(12));
+        contenido.add(acciones);
+        contenido.setPreferredSize(new Dimension(560, contenido.getPreferredSize().height));
+
+        JPanel centro = new JPanel(new GridBagLayout());
+        centro.setBackground(FONDO);
+        centro.setBorder(BorderFactory.createEmptyBorder(22, 24, 22, 24));
+        GridBagConstraints restricciones = new GridBagConstraints();
+        restricciones.fill = GridBagConstraints.NONE;
+        restricciones.anchor = GridBagConstraints.CENTER;
+        restricciones.gridx = 0;
+        restricciones.gridy = 0;
+        centro.add(contenido, restricciones);
+        add(centro, BorderLayout.CENTER);
 
         JButton botonCerrarSesion = UtilidadesInterfaz.boton("Cerrar sesion", e -> ventana.cerrarSesion());
         JButton botonSalir = UtilidadesInterfaz.boton("Salir", e -> System.exit(0));
-        add(UtilidadesInterfaz.panelBotones(botonCerrarSesion, botonSalir), BorderLayout.SOUTH);
+        estilizarBotonPie(botonCerrarSesion, true);
+        estilizarBotonPie(botonSalir, false);
+        JPanel pie = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        pie.setBackground(new Color(235, 239, 244));
+        pie.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDE));
+        pie.add(botonCerrarSesion);
+        pie.add(botonSalir);
+        add(pie, BorderLayout.SOUTH);
+    }
+
+    private JPanel crearEncabezado() {
+        JPanel encabezado = new JPanel();
+        encabezado.setLayout(new BoxLayout(encabezado, BoxLayout.Y_AXIS));
+        encabezado.setBackground(AZUL_OSCURO);
+        encabezado.setBorder(BorderFactory.createEmptyBorder(22, 30, 22, 30));
+
+        JLabel titulo = new JLabel("Menu de administrador");
+        titulo.setFont(titulo.getFont().deriveFont(Font.BOLD, 23f));
+        titulo.setForeground(Color.WHITE);
+        String nombre = ventana.getSesion() != null ? ventana.getSesion().getNombre() : "";
+        JLabel bienvenida = new JLabel("Bienvenido, " + nombre + ". Gestione los eventos de la visita.");
+        bienvenida.setFont(bienvenida.getFont().deriveFont(Font.PLAIN, 14f));
+        bienvenida.setForeground(new Color(220, 230, 239));
+        bienvenida.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+
+        encabezado.add(titulo);
+        encabezado.add(bienvenida);
+        return encabezado;
     }
 
     private void registrarEvento() {
@@ -347,17 +403,46 @@ public class PanelAdministrador extends JPanel {
         JButton boton = new JButton(texto);
         boton.addActionListener(accion);
         boton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        boton.setMaximumSize(new Dimension(Integer.MAX_VALUE, boton.getPreferredSize().height));
         boton.setFont(boton.getFont().deriveFont(Font.PLAIN, 14f));
         boton.setForeground(TEXTO);
         boton.setBackground(Color.WHITE);
         boton.setOpaque(true);
-        boton.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDE),
-                BorderFactory.createEmptyBorder(10, 12, 10, 12)
-        ));
         boton.setFocusPainted(false);
+        boton.setHorizontalAlignment(SwingConstants.LEFT);
+        Border bordeNormal = BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDE),
+                BorderFactory.createEmptyBorder(10, 14, 10, 14));
+        Border bordeHover = BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(115, 145, 174)),
+                BorderFactory.createEmptyBorder(10, 14, 10, 14));
+        boton.setBorder(bordeNormal);
+        boton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+        boton.setPreferredSize(new Dimension(560, 46));
         boton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        boton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                boton.setBackground(new Color(232, 239, 247));
+                boton.setBorder(bordeHover);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                boton.setBackground(Color.WHITE);
+                boton.setBorder(bordeNormal);
+            }
+        });
         return boton;
+    }
+
+    private void estilizarBotonPie(JButton boton, boolean principal) {
+        boton.setFont(boton.getFont().deriveFont(Font.PLAIN, 13f));
+        boton.setForeground(principal ? Color.WHITE : TEXTO);
+        boton.setBackground(principal ? AZUL_OSCURO : Color.WHITE);
+        boton.setOpaque(true);
+        boton.setFocusPainted(false);
+        boton.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(principal ? AZUL_OSCURO : BORDE),
+                BorderFactory.createEmptyBorder(7, 12, 7, 12)));
     }
 }

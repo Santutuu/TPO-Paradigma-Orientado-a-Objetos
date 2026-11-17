@@ -6,6 +6,8 @@ import modelo.UsuarioFactory;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.text.Collator;
 import java.util.Arrays;
 import java.util.Locale;
@@ -34,6 +36,14 @@ public class PanelRegistroAsistente extends JPanel {
         add(crearEncabezado(), BorderLayout.NORTH);
 
         campoNombreUsuario = new JTextField();
+        campoNombreUsuario.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (e.getKeyChar() == ' ') {
+                    e.consume();
+                }
+            }
+        });
         campoClave = new JPasswordField();
         campoNombre = new JTextField();
         comboTipoDocumento = new JComboBox<>(TipoDocumento.values());
@@ -182,6 +192,10 @@ public class PanelRegistroAsistente extends JPanel {
             if (nombreUsuario.isEmpty() || clave.isEmpty() || nombre.isEmpty()
                     || dni.isEmpty() || origen.isEmpty()) {
                 UtilidadesInterfaz.mostrarError(this, "Completa todos los campos.");
+                return;
+            }
+            if (nombreUsuario.contains(" ")) {
+                UtilidadesInterfaz.mostrarError(this, "El nombre de usuario no puede contener espacios.");
                 return;
             }
 

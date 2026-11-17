@@ -187,9 +187,14 @@ public class PanelInicioSesion extends JPanel {
             return;
         }
 
+        if (!ventana.getGestorUsuarios().existeNombreUsuario(usuario)) {
+            UtilidadesInterfaz.mostrarError(this, "El nombre de usuario no existe.");
+            return;
+        }
+
         Usuario cuenta = ventana.getGestorUsuarios().autenticar(usuario, clave);
         if (cuenta == null) {
-            UtilidadesInterfaz.mostrarError(this, "Usuario o clave incorrectos.");
+            UtilidadesInterfaz.mostrarError(this, "La contraseña es incorrecta.");
             return;
         }
 
