@@ -104,6 +104,7 @@ public class PanelAdministrador extends JPanel {
         JTextField campoActividad = new JTextField("", 20);
         JComboBox<Ciudad> comboCiudad = new JComboBox<>(Ciudad.values());
         JTextField campoDireccion = new JTextField("", 20);
+        JTextField campoCapacidad = new JTextField("0", 8);
 
         JPanel form = UtilidadesInterfaz.formulario(
                 UtilidadesInterfaz.fila("Fecha (AAAA-MM-DD):", campoFecha),
@@ -111,7 +112,8 @@ public class PanelAdministrador extends JPanel {
                 UtilidadesInterfaz.fila("Fin (HH:mm):", campoHorarioFin),
                 UtilidadesInterfaz.fila("Actividad:", campoActividad),
                 UtilidadesInterfaz.fila("Ciudad:", comboCiudad),
-                UtilidadesInterfaz.fila("Direccion:", campoDireccion)
+                UtilidadesInterfaz.fila("Direccion:", campoDireccion),
+                UtilidadesInterfaz.fila("Capacidad maxima (0 = sin limite):", campoCapacidad)
         );
 
         JPanel panel = new JPanel(new BorderLayout());
@@ -145,7 +147,8 @@ public class PanelAdministrador extends JPanel {
                     UtilidadesInterfaz.leerHora(campoHorarioFin.getText()),
                     campoActividad.getText(),
                     (Ciudad) comboCiudad.getSelectedItem(),
-                    campoDireccion.getText());
+                    campoDireccion.getText(),
+                    leerCapacidad(campoCapacidad));
             UtilidadesInterfaz.mostrarInfo(this, "Evento registrado correctamente.");
         } catch (Exception ex) {
             ventana.mostrarError(this, ex);
@@ -171,6 +174,8 @@ public class PanelAdministrador extends JPanel {
         JComboBox<Ciudad> comboCiudadEdicion = new JComboBox<>(Ciudad.values());
         comboCiudadEdicion.setSelectedItem(eventoSeleccionado.getCiudad());
         JTextField campoDireccionEdicion = new JTextField(eventoSeleccionado.getDireccion(), 20);
+        JTextField campoCapacidad = new JTextField(
+                String.valueOf(eventoSeleccionado.getCapacidadMaxima()), 8);
 
         JPanel form = UtilidadesInterfaz.formulario(
                 UtilidadesInterfaz.fila("Fecha (AAAA-MM-DD):", campoFecha),
@@ -178,14 +183,17 @@ public class PanelAdministrador extends JPanel {
                 UtilidadesInterfaz.fila("Fin (HH:mm):", campoHorarioFin),
                 UtilidadesInterfaz.fila("Actividad:", campoActividad),
                 UtilidadesInterfaz.fila("Ciudad:", comboCiudadEdicion),
-                UtilidadesInterfaz.fila("Direccion:", campoDireccionEdicion)
+                UtilidadesInterfaz.fila("Direccion:", campoDireccionEdicion),
+                UtilidadesInterfaz.fila("Capacidad maxima (0 = sin limite):", campoCapacidad)
         );
 
         JPanel panelEdicion = new JPanel(new BorderLayout());
         panelEdicion.setBackground(FONDO);
         panelEdicion.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 
-        JLabel cabecera = new JLabel("Evento #" + eventoSeleccionado.getId());
+        JLabel cabecera = new JLabel("Evento #" + eventoSeleccionado.getId()
+                + " - inscriptos: " + ventana.getGestorEventos()
+                .contarInscriptos(eventoSeleccionado.getId()));
         cabecera.setFont(cabecera.getFont().deriveFont(Font.BOLD, 15f));
         cabecera.setForeground(AZUL_OSCURO);
         cabecera.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
@@ -213,7 +221,8 @@ public class PanelAdministrador extends JPanel {
                     UtilidadesInterfaz.leerHora(campoHorarioFin.getText()),
                     campoActividad.getText(),
                     (Ciudad) comboCiudadEdicion.getSelectedItem(),
-                    campoDireccionEdicion.getText()
+                    campoDireccionEdicion.getText(),
+                    leerCapacidad(campoCapacidad)
             );
             UtilidadesInterfaz.mostrarInfo(this, "Evento modificado correctamente.");
         } catch (Exception ex) {
@@ -276,7 +285,7 @@ public class PanelAdministrador extends JPanel {
 
         DefaultTableModel modelo = new DefaultTableModel(
                 new Object[]{"ID", "Fecha", "Inicio", "Fin", "Actividad", "Ciudad",
-                        "Direccion", "Estado"}, 0) {
+                        "Direccion", "Estado", "Inscriptos/Cupo"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -394,9 +403,31 @@ public class PanelAdministrador extends JPanel {
                     evento.getActividad(),
                     evento.getCiudad(),
                     evento.getDireccion(),
-                    evento.getEstado()
+                    evento.getEstado(),
+                    cupo(evento)
             });
         }
+    }
+
+    /** Lee la capacidad ingresada; vacio o 0 significa sin limite. */
+    private int leerCapacidad(JTextField campo) {
+        String texto = campo.getText() == null ? "" : campo.getText().trim();
+        if (texto.isEmpty()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(texto);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException(
+                    "La capacidad debe ser un numero entero (0 = sin limite).");
+        }
+    }
+
+    /** Texto de ocupacion para la tabla: inscriptos y capacidad. */
+    private String cupo(Evento evento) {
+        int inscriptos = ventana.getGestorEventos().contarInscriptos(evento.getId());
+        int capacidad = evento.getCapacidadMaxima();
+        return inscriptos + " / " + (capacidad == 0 ? "sin limite" : capacidad);
     }
 
     private JButton botonCentrado(String texto, java.awt.event.ActionListener accion) {

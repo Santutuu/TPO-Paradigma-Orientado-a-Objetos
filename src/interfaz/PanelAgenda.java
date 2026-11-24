@@ -221,13 +221,16 @@ public class PanelAgenda extends JPanel {
 
     private void mostrarTabla() {
         String[] columnas = {"Id", "Fecha", "Inicio", "Fin", "Actividad", "Ciudad",
-                "Direccion", "Estado"};
-        Object[][] filas = new Object[eventosMostrados.size()][8];
+                "Direccion", "Estado", "Inscriptos/Cupo"};
+        Object[][] filas = new Object[eventosMostrados.size()][9];
         for (int i = 0; i < eventosMostrados.size(); i++) {
             Evento e = eventosMostrados.get(i);
+            int inscriptos = ventana.getGestorEventos().contarInscriptos(e.getId());
+            String cupo = inscriptos + " / "
+                    + (e.getCapacidadMaxima() == 0 ? "sin limite" : e.getCapacidadMaxima());
             filas[i] = new Object[]{e.getId(), e.getFecha(), e.getHorario(),
                     e.getHorarioFin(), e.getActividad(), e.getCiudad(), e.getDireccion(),
-                    e.getEstado()};
+                    e.getEstado(), cupo};
         }
         tabla.setModel(UtilidadesInterfaz.modeloTabla(columnas, filas));
     }
@@ -254,7 +257,7 @@ public class PanelAgenda extends JPanel {
         ejecutarInscripcion(botonInscribir,
                 () -> ventana.getGestorEventos().inscribir(asistente, evento.getId()),
                 "Te inscribiste al evento \"" + evento.getActividad() + "\".",
-                null);
+                this::mostrarTabla);
     }
 
     private void desinscribir() {

@@ -50,12 +50,31 @@ public class GestorEventos {
         return null;
     }
 
+    /** Cantidad de asistentes inscriptos en el evento. */
+    public synchronized int contarInscriptos(int idEvento) {
+        int total = 0;
+        for (Usuario u : gestorUsuarios.getUsuarios()) {
+            if (u.esAsistente() && ((Asistente) u).estaInscrito(idEvento)) {
+                total++;
+            }
+        }
+        return total;
+    }
+
     /**
      * Registra un evento nuevo con un id autogenerado y guarda en disco.
      */
     public synchronized Evento registrar(LocalDate fecha, LocalTime horario, LocalTime horarioFin,
                                          String actividad, Ciudad ciudad, String direccion) {
-        Evento evento = new Evento(proximoId(), fecha, horario, horarioFin, actividad, ciudad, direccion);
+        return registrar(fecha, horario, horarioFin, actividad, ciudad, direccion, 0);
+    }
+
+    /** Registra un evento con capacidad maxima; 0 significa sin limite. */
+    public synchronized Evento registrar(LocalDate fecha, LocalTime horario, LocalTime horarioFin,
+                                         String actividad, Ciudad ciudad, String direccion,
+                                         int capacidadMaxima) {
+        Evento evento = new Evento(proximoId(), fecha, horario, horarioFin, actividad, ciudad,
+                direccion, capacidadMaxima);
         eventos.add(evento);
         guardarEventos();
         notificarEventoCreado(evento);
@@ -66,14 +85,29 @@ public class GestorEventos {
                                              LocalTime horarioFin, String actividad, Ciudad ciudad,
                                              String direccion) {
         Evento evento = buscarPorId(id);
+        int capacidadMaxima = evento == null ? 0 : evento.getCapacidadMaxima();
+        modificarEvento(id, fecha, horario, horarioFin, actividad, ciudad, direccion,
+                capacidadMaxima);
+    }
+
+    public synchronized void modificarEvento(int id, LocalDate fecha, LocalTime horario,
+                                             LocalTime horarioFin, String actividad, Ciudad ciudad,
+                                             String direccion, int capacidadMaxima) {
+        Evento evento = buscarPorId(id);
         if (evento == null) {
             throw new IllegalArgumentException("No existe un evento con id " + id + ".");
         }
         if (!evento.estaActiva()) {
             throw new IllegalArgumentException("No se puede modificar un evento cancelado.");
         }
+        int inscriptos = contarInscriptos(id);
+        if (capacidadMaxima > 0 && capacidadMaxima < inscriptos) {
+            throw new IllegalArgumentException("No se puede reducir la capacidad a " + capacidadMaxima
+                    + " porque hay " + inscriptos + " asistentes inscriptos.");
+        }
 
-        Evento propuesto = new Evento(id, fecha, horario, horarioFin, actividad, ciudad, direccion);
+        Evento propuesto = new Evento(id, fecha, horario, horarioFin, actividad, ciudad, direccion,
+                capacidadMaxima);
         for (Usuario u : gestorUsuarios.getUsuarios()) {
             if (u.esAsistente() && ((Asistente) u).estaInscrito(id)) {
                 Asistente asistente = (Asistente) u;
@@ -93,6 +127,7 @@ public class GestorEventos {
         evento.setActividad(actividad);
         evento.setCiudad(ciudad);
         evento.setDireccion(direccion);
+        evento.setCapacidadMaxima(capacidadMaxima);
         guardarEventos();
 
         guardarCuentas();
@@ -145,6 +180,12 @@ public class GestorEventos {
             throw new IllegalArgumentException("No podes inscribirte: se superpone con \""
                     + choque.getActividad() + "\" (" + choque.getHorario()
                     + " a " + choque.getHorarioFin() + "), al que ya estas inscripto.");
+        }
+        if (evento.getCapacidadMaxima() > 0
+                && contarInscriptos(idEvento) >= evento.getCapacidadMaxima()) {
+            throw new IllegalArgumentException("No se puede registrar al evento porque alcanzo "
+                    + "la capacidad maxima de " + evento.getCapacidadMaxima()
+                    + " asistentes.");
         }
         asistente.inscribir(idEvento);
         guardarCuentas();

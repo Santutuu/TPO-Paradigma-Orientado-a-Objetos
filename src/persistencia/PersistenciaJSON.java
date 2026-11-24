@@ -302,6 +302,8 @@ public class PersistenciaJSON {
                 throw new IOException("Estado de evento desconocido en eventos.json: " + valorEstado);
             }
         }
+        int capacidadMaxima = m.get("capacidadMaxima") == null
+                ? 0 : numero(m.get("capacidadMaxima")).intValue();
         return new Evento(id,
                 LocalDate.parse((String) m.get("fecha")),
                 horario,
@@ -309,6 +311,7 @@ public class PersistenciaJSON {
                 (String) m.get("actividad"),
                 Ciudad.valueOf((String) m.get("ciudad")),
                 direccion,
+                capacidadMaxima,
                 estado);
     }
 
@@ -419,6 +422,7 @@ public class PersistenciaJSON {
                 + ", \"actividad\": " + jsonCadena(e.getActividad())
                 + ", \"ciudad\": " + jsonCadena(e.getCiudad().name())
                 + ", \"direccion\": " + jsonCadena(e.getDireccion())
+                + ", \"capacidadMaxima\": " + e.getCapacidadMaxima()
                 + ", \"estado\": " + jsonCadena(e.getEstado().name()) + " }";
     }
 

@@ -7,7 +7,8 @@ import java.time.LocalTime;
  * Evento de la agenda de la visita del Papa. Ademas del horario de inicio
  * (horario) guarda un horario de fin estimado (horarioFin), necesario para
  * detectar superposiciones entre eventos. El estado permite cancelarlo sin
- * borrar sus datos, para conservar el historial.
+ * borrar sus datos, para conservar el historial. La capacidad maxima limita la
+ * cantidad de asistentes; el valor 0 significa sin limite.
  */
 public class Evento {
 
@@ -18,10 +19,12 @@ public class Evento {
     private String actividad;
     private Ciudad ciudad;
     private String direccion;
+    private int capacidadMaxima;
     private EstadoEvento estado;
 
     public Evento(int id, LocalDate fecha, LocalTime horario, LocalTime horarioFin,
-                  String actividad, Ciudad ciudad, String direccion, EstadoEvento estado) {
+                  String actividad, Ciudad ciudad, String direccion, int capacidadMaxima,
+                  EstadoEvento estado) {
         this.id = id;
         setFecha(fecha);
         setHorario(horario);
@@ -29,13 +32,27 @@ public class Evento {
         setActividad(actividad);
         setCiudad(ciudad);
         setDireccion(direccion);
+        setCapacidadMaxima(capacidadMaxima);
         setEstado(estado);
     }
 
     /** Constructor compatible: crea el evento en estado ACTIVA. */
     public Evento(int id, LocalDate fecha, LocalTime horario, LocalTime horarioFin,
+                  String actividad, Ciudad ciudad, String direccion, int capacidadMaxima) {
+        this(id, fecha, horario, horarioFin, actividad, ciudad, direccion, capacidadMaxima,
+                EstadoEvento.ACTIVA);
+    }
+
+    /** Constructor compatible: sin capacidad definida (sin limite) y ACTIVA. */
+    public Evento(int id, LocalDate fecha, LocalTime horario, LocalTime horarioFin,
                   String actividad, Ciudad ciudad, String direccion) {
-        this(id, fecha, horario, horarioFin, actividad, ciudad, direccion, EstadoEvento.ACTIVA);
+        this(id, fecha, horario, horarioFin, actividad, ciudad, direccion, 0, EstadoEvento.ACTIVA);
+    }
+
+    /** Constructor compatible: sin capacidad definida (sin limite). */
+    public Evento(int id, LocalDate fecha, LocalTime horario, LocalTime horarioFin,
+                  String actividad, Ciudad ciudad, String direccion, EstadoEvento estado) {
+        this(id, fecha, horario, horarioFin, actividad, ciudad, direccion, 0, estado);
     }
 
     public int getId() {
@@ -117,6 +134,21 @@ public class Evento {
             throw new IllegalArgumentException("La direccion del evento es obligatoria.");
         }
         this.direccion = direccion.trim();
+    }
+
+    public int getCapacidadMaxima() {
+        return capacidadMaxima;
+    }
+
+    /**
+     * Capacidad maxima de asistentes. El valor 0 significa que el evento no
+     * tiene limite de capacidad.
+     */
+    public void setCapacidadMaxima(int capacidadMaxima) {
+        if (capacidadMaxima < 0) {
+            throw new IllegalArgumentException("La capacidad del evento no puede ser negativa.");
+        }
+        this.capacidadMaxima = capacidadMaxima;
     }
 
     public EstadoEvento getEstado() {
